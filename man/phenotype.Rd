@@ -45,11 +45,15 @@ Last update: Apr 28, 2022
 pop.env <- list(
   F1 = list( # fixed effect 1
     level = c("1", "2"),
-    eff = list(tr1 = c(50, 30), tr2 = c(50, 30))
+    effect = list(tr1 = c(50, 30), tr2 = c(50, 30))
   ), 
   F2 = list( # fixed effect 2
     level = c("d1", "d2", "d3"),
-    eff = list(tr1 = c(10, 20, 30), tr2 = c(10, 20, 30))
+    effect = list(tr1 = c(10, 20, 30), tr2 = c(10, 20, 30))
+  ),
+  C1 = list( # covariate 1
+    level = c(70, 80, 90),
+    slope = list(tr1 = 1.5, tr2 = 1.5)
   ),
   R1 = list( # random effect 1
     level = c("l1", "l2", "l3"),
@@ -58,7 +62,8 @@ pop.env <- list(
 )
 
 # Generate genotype simulation parameters
-SP <- param.annot(qtn.num = diag(c(10, 10)), qtn.model = "A + D + A:D")
+SP <- param.annot(qtn.num = list(tr1 = 10, tr2 = 10),
+                  qtn.model = "A + D + A:D")
 # Generate annotation simulation parameters
 SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 # Generate phenotype simulation parameters
@@ -70,8 +75,8 @@ SP <- param.pheno(
   pop.env = pop.env,
   phe.var = list(tr1 = 100, tr2 = 100),
   phe.model = list(
-    tr1 = "T1 = A + D + A:D + F1 + F2 + R1 + A:F1 + E",
-    tr2 = "T2 = A + D + A:D + F1 + F2 + R1 + A:F1 + E"
+    tr1 = "T1 = A + D + A:D + F1 + F2 + C1 + R1 + A:F1 + E",
+    tr2 = "T2 = A + D + A:D + F1 + F2 + C1 + R1 + A:F1 + E"
   )
 )
 

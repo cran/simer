@@ -51,6 +51,9 @@ genotype <- function(SP = NULL, ncpus = 0, verbose = TRUE) {
   if (is.matrix(SP$geno$pop.geno) | is.big.matrix(SP$geno$pop.geno)) {
     pop.geno <- SP$geno$pop.geno
     SP$geno$pop.geno <- list(1)
+  } else if (is.data.frame(SP$geno$pop.geno)) {
+    pop.geno <- as.matrix(SP$geno$pop.geno)
+    SP$geno$pop.geno <- list(1)
   } else {
     pop.geno <- SP$geno$pop.geno[[length(SP$geno$pop.geno)]]
   }
@@ -73,9 +76,6 @@ genotype <- function(SP = NULL, ncpus = 0, verbose = TRUE) {
     if (is.big.matrix(pop.geno)) {
       bigmat <- pop.geno
     } else {
-      if (is.list(pop.geno)) {
-        pop.geno <- as.matrix(pop.geno)
-      }
       bigmat <- big.matrix(
         nrow = nrow(pop.geno),
         ncol = ncol(pop.geno),
@@ -112,8 +112,8 @@ genotype <- function(SP = NULL, ncpus = 0, verbose = TRUE) {
   }
   rm(pop.geno); gc()
   
-  pop.marker <- nrow(bigmat)
-  pop.ind <- ncol(bigmat) / incols    
+  SP$geno$pop.marker <- pop.marker <- nrow(bigmat)
+  SP$geno$pop.ind <- pop.ind <- ncol(bigmat) / incols
   
   if (!is.null(pop.map)) {
     if (nrow(bigmat) != nrow(pop.map)) {
@@ -148,7 +148,11 @@ genotype <- function(SP = NULL, ncpus = 0, verbose = TRUE) {
     }
   }
   
-  SP$geno$pop.geno[[ifelse(is.null(SP$geno$pop.geno), 1, length(SP$geno$pop.geno))]] <- bigmat
+  if (is.null(SP$geno$pop.geno)) {
+    SP$geno$pop.geno <- list(bigmat)
+  } else {
+    SP$geno$pop.geno[[length(SP$geno$pop.geno)]] <- bigmat
+  }
   names(SP$geno$pop.geno)[length(SP$geno$pop.geno)] <- paste0("gen", length(SP$geno$pop.geno))
   return(SP)
 }
@@ -158,7 +162,7 @@ genotype <- function(SP = NULL, ncpus = 0, verbose = TRUE) {
 #' Generating a map with annotation information
 #'
 #' Build date: Nov 14, 2018
-#' Last update: Apr 28, 2022
+#' Last update: Jul 10, 2022
 #'
 #' @author Dong Yin
 #'
@@ -169,8 +173,9 @@ genotype <- function(SP = NULL, ncpus = 0, verbose = TRUE) {
 #' the function returns a list containing
 #' \describe{
 #' \item{$map$pop.map}{the map data with annotation information.}
-#' \item{$map$qtn.num}{integer: the QTN number of single trait; vector: the multiple group QTN number of single trait; matrix: the QTN number of multiple traits.}
 #' \item{$map$qtn.model}{the genetic model of QTN such as 'A + D'.}
+#' \item{$map$qtn.index}{the QTN index for each trait.}
+#' \item{$map$qtn.num}{the QTN number for (each group in) each trait.}
 #' \item{$map$qtn.dist}{the QTN distribution containing 'norm', 'geom', 'gamma' or 'beta'.}
 #' \item{$map$qtn.sd}{the standard deviations for normal distribution.}
 #' \item{$map$qtn.prob}{the probability of success for geometric distribution.}
@@ -191,7 +196,7 @@ genotype <- function(SP = NULL, ncpus = 0, verbose = TRUE) {
 #'
 #' @examples
 #' # Generate annotation simulation parameters
-#' SP <- param.annot(qtn.num = 10)
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' 
 #' # Run annotation simulation
 #' SP <- annotation(SP)
@@ -202,8 +207,9 @@ annotation <- function(SP, verbose = TRUE) {
   # annotation parameters
   pop.map <- SP$map$pop.map
   pop.geno <- SP$geno$pop.geno
-  qtn.num <- SP$map$qtn.num
   qtn.model <- SP$map$qtn.model
+  qtn.index <- SP$map$qtn.index
+  qtn.num <- SP$map$qtn.num
   qtn.dist <- SP$map$qtn.dist
   qtn.sd <- SP$map$qtn.sd
   qtn.prob <- SP$map$qtn.prob
@@ -227,8 +233,8 @@ annotation <- function(SP, verbose = TRUE) {
     pop.map <- as.data.frame(pop.map)
   }
     
-  if (!is.numeric(pop.map$BP)) {
-    pop.map$BP <- as.numeric(pop.map$BP)
+  if (!is.numeric(pop.map[, 3])) {
+    pop.map[, 3] <- as.numeric(pop.map[, 3])
   }
   nc.map <- ncol(pop.map)
   
@@ -237,19 +243,19 @@ annotation <- function(SP, verbose = TRUE) {
   }
   
   if (is.null(pop.map$Block) & (recom.spot | qtn.spot)) {
-    pop.map$Block <- pop.map$BP %/% len.block + 1
+    pop.map$Block <- pop.map[, 3] %/% len.block + 1
   }
   
   if (is.null(pop.map$Recom) & recom.spot) {
-    chrs <- unique(pop.map$Chrom)
+    chrs <- unique(pop.map[, 2])
     Recom <- rep(0, nrow(pop.map))
     for (i in 1:length(chrs)) {
-      block.tab <- table(pop.map$Block[pop.map$Chrom == chrs[i]])
+      block.tab <- table(pop.map$Block[pop.map[, 2] == chrs[i]])
       nblock <- length(block.tab)
       sublock <- nblock %/% 3
       recom.chr <- rep(c(1, 0, 1), c(sublock, (nblock-2*sublock), sublock))
       for (j in 1:nblock) {
-        recom.flag <- pop.map$Chrom == chrs[i] & pop.map$Block == j
+        recom.flag <- pop.map[, 2] == chrs[i] & pop.map$Block == j
         recom.sum <- sum(recom.flag)
         if (recom.sum != 0) {
           if (recom.chr[j] == 0) {
@@ -286,49 +292,33 @@ annotation <- function(SP, verbose = TRUE) {
     if (nrow(pop.geno) != nrow(pop.map)) {
       stop("Marker number should be same in both 'pop.map' and 'pop.geno'!")
     }
-    MAF <- rowSums(pop.geno) / ncol(pop.geno)
+    MAF <- rowSums(pop.geno[]) / ncol(pop.geno)
     MAF <- pmin(MAF, 1 - MAF)
     pop.map$QTNProb[MAF < maf] <- 0
     pop.map$MAF <- MAF
   }
   
   # select markers as QTNs
-  nTrait <- 1
-  if (is.matrix(qtn.num)) {
-    nTrait <- nrow(qtn.num)
-  }
-  
-  if (nTrait == 1 & length(qtn.num) > 1) {
-    # multiple groups of genetic effects
-    qtn.num.all <- sum(qtn.num)
+  if (is.null(qtn.index)) {
+    nTrait <- length(qtn.num)
   } else {
-    qtn.num.all <- sum(qtn.num[lower.tri(qtn.num)], diag(qtn.num))
+    nTrait <- length(qtn.index)
   }
-  
-  qtn.all <- sort(sample(1:nrow(pop.map), qtn.num.all))
   qtn.trn <- rep(list(NULL), nTrait)
-  qtn.trn.num <- rep(list(NULL), nTrait)
+  names(qtn.trn) <- paste0('tr', 1:nTrait)
   
   # QTN number
-  if (nTrait == 1) {
-    qtn.trn[[1]] <- qtn.all
-    qtn.trn.num[[1]] <- qtn.num
-    logging.log(" Number of selected markers of trait", 1, ":", qtn.trn.num[[1]], "\n", verbose = verbose)
-  } else {
-    k <- 1
+  if (is.null(qtn.index)) {
     for (i in 1:nTrait) {
-      for (j in i:nTrait) {
-        if (qtn.num[i, j] <= 0) { next  }
-        qtn.tmp <- qtn.all[k:(k+qtn.num[i, j]-1)]
-        qtn.trn[[i]] <- c(qtn.trn[[i]], qtn.tmp)
-        if (i != j) {
-          qtn.trn[[j]] <- c(qtn.trn[[j]], qtn.tmp)
-        }
-        k <- k + qtn.num[i, j]
-      }
-      qtn.trn.num[[i]] <- sum(qtn.num[i, ])
-      logging.log(" Number of selected markers of trait", i, ":", length(qtn.trn[[i]]), "\n", verbose = verbose)
+      if (sum(qtn.num[[i]]) <= 0) { next  }
+      qtn.trn[[i]] <- sort(sample(1:nrow(pop.map), sum(qtn.num[[i]])))
+      logging.log(" Number of selected markers of trait", i, ":", qtn.num[[i]], "\n", verbose = verbose)
     }
+    SP$map$qtn.index <- qtn.trn
+    
+  } else {
+    qtn.trn <- qtn.index
+    SP$map$qtn.num <- qtn.num <- lapply(qtn.trn, length)
   }
   
   # QTN effect
@@ -341,7 +331,7 @@ annotation <- function(SP, verbose = TRUE) {
   names(qtn.trn.eff) <- paste0(qtn.eff.name[, 2], "_", qtn.eff.name[, 1])
   for (i in 1:nTrait) {
     for (j in 1:nAD) {
-      qtn.trn.eff[qtn.trn[[i]], nAD*(i-1) + j] <- cal.eff(qtn.trn.num[[i]], qtn.dist[[i]], qtn.sd[[i]], qtn.prob[[i]], qtn.shape[[i]], qtn.scale[[i]], qtn.shape1[[i]], qtn.shape2[[i]], qtn.ncp[[i]])
+      qtn.trn.eff[qtn.trn[[i]], nAD*(i-1) + j] <- cal.eff(qtn.num[[i]], qtn.dist[[i]], qtn.sd[[i]], qtn.prob[[i]], qtn.shape[[i]], qtn.scale[[i]], qtn.shape1[[i]], qtn.shape2[[i]], qtn.ncp[[i]])
     }
   }
   pop.map <- cbind(pop.map, qtn.trn.eff)

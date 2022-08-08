@@ -11,18 +11,31 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// SNPHWE2
-double SNPHWE2(int32_t obs_hets, int32_t obs_hom1, int32_t obs_hom2, uint32_t midp);
-RcppExport SEXP _simer_SNPHWE2(SEXP obs_hetsSEXP, SEXP obs_hom1SEXP, SEXP obs_hom2SEXP, SEXP midpSEXP) {
+// write_bfile
+void write_bfile(SEXP pBigMat, std::string bed_file, int threads, bool verbose);
+RcppExport SEXP _simer_write_bfile(SEXP pBigMatSEXP, SEXP bed_fileSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int32_t >::type obs_hets(obs_hetsSEXP);
-    Rcpp::traits::input_parameter< int32_t >::type obs_hom1(obs_hom1SEXP);
-    Rcpp::traits::input_parameter< int32_t >::type obs_hom2(obs_hom2SEXP);
-    Rcpp::traits::input_parameter< uint32_t >::type midp(midpSEXP);
-    rcpp_result_gen = Rcpp::wrap(SNPHWE2(obs_hets, obs_hom1, obs_hom2, midp));
-    return rcpp_result_gen;
+    Rcpp::traits::input_parameter< SEXP >::type pBigMat(pBigMatSEXP);
+    Rcpp::traits::input_parameter< std::string >::type bed_file(bed_fileSEXP);
+    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    write_bfile(pBigMat, bed_file, threads, verbose);
+    return R_NilValue;
+END_RCPP
+}
+// read_bfile
+void read_bfile(std::string bed_file, SEXP pBigMat, long maxLine, int threads, bool verbose);
+RcppExport SEXP _simer_read_bfile(SEXP bed_fileSEXP, SEXP pBigMatSEXP, SEXP maxLineSEXP, SEXP threadsSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type bed_file(bed_fileSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type pBigMat(pBigMatSEXP);
+    Rcpp::traits::input_parameter< long >::type maxLine(maxLineSEXP);
+    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    read_bfile(bed_file, pBigMat, maxLine, threads, verbose);
+    return R_NilValue;
 END_RCPP
 }
 // GenoFilter
@@ -136,7 +149,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_simer_SNPHWE2", (DL_FUNC) &_simer_SNPHWE2, 4},
+    {"_simer_write_bfile", (DL_FUNC) &_simer_write_bfile, 4},
+    {"_simer_read_bfile", (DL_FUNC) &_simer_read_bfile, 5},
     {"_simer_GenoFilter", (DL_FUNC) &_simer_GenoFilter, 8},
     {"_simer_Mat2BigMat", (DL_FUNC) &_simer_Mat2BigMat, 5},
     {"_simer_BigMat2BigMat", (DL_FUNC) &_simer_BigMat2BigMat, 5},

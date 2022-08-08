@@ -39,7 +39,7 @@
 #'
 #' @examples
 #' # Generate annotation simulation parameters
-#' SP <- param.annot(qtn.num = 10)
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 #' # Generate phenotype simulation parameters
@@ -191,7 +191,7 @@ mate <- function(pop.geno, index.sir, index.dam, incols = 1, ncpus = 0) {
 #'
 #' @examples
 #' # Generate annotation simulation parameters
-#' SP <- param.annot(qtn.num = 10)
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 #' # Generate phenotype simulation parameters
@@ -314,7 +314,7 @@ mate.clone <- function(SP, ncpus = 0, verbose = TRUE) {
 #'
 #' @examples
 #' # Generate annotation simulation parameters
-#' SP <- param.annot(qtn.num = 10)
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 #' # Generate phenotype simulation parameters
@@ -441,7 +441,7 @@ mate.dh <- function(SP, ncpus = 0, verbose = TRUE) {
 #'
 #' @examples
 #' # Generate annotation simulation parameters
-#' SP <- param.annot(qtn.num = 10)
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 #' # Generate phenotype simulation parameters
@@ -543,7 +543,7 @@ mate.selfpol <- function(SP, ncpus = 0, verbose = TRUE) {
 #'
 #' @examples
 #' # Generate annotation simulation parameters
-#' SP <- param.annot(qtn.num = 10)
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 #' # Generate phenotype simulation parameters
@@ -653,7 +653,7 @@ mate.randmate <- function(SP, ncpus = 0, verbose = TRUE) {
 #'
 #' @examples
 #' # Generate annotation simulation parameters
-#' SP <- param.annot(qtn.num = 10)
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 #' # Generate phenotype simulation parameters
@@ -773,7 +773,7 @@ mate.randexself <- function(SP, ncpus = 0, verbose = TRUE) {
 #'
 #' @examples
 #' # Generate annotation simulation parameters
-#' SP <- param.annot(qtn.num = 10)
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 #' # Generate phenotype simulation parameters
@@ -798,6 +798,7 @@ mate.randexself <- function(SP, ncpus = 0, verbose = TRUE) {
 mate.2waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   
   count.ind <- NULL
+  SP$reprod$pop.gen <- 2
   
   # reproduction parameters
   pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
@@ -879,7 +880,7 @@ mate.2waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #'
 #' @examples
 #' # Generate annotation simulation parameters
-#' SP <- param.annot(qtn.num = 10)
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 #' # Generate phenotype simulation parameters
@@ -904,6 +905,7 @@ mate.2waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 mate.3waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   
   count.ind <- NULL
+  SP$reprod$pop.gen <- 3
   
   # reproduction parameters
   pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
@@ -1037,7 +1039,7 @@ mate.3waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #'
 #' @examples
 #' # Generate annotation simulation parameters
-#' SP <- param.annot(qtn.num = 10)
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 #' # Generate phenotype simulation parameters
@@ -1062,6 +1064,7 @@ mate.3waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 mate.4waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   
   count.ind <- NULL
+  SP$reprod$pop.gen <- 3
   
   # reproduction parameters
   pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
@@ -1204,7 +1207,7 @@ mate.4waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #'
 #' @examples
 #' # Generate annotation simulation parameters
-#' SP <- param.annot(qtn.num = 10)
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 #' # Generate phenotype simulation parameters
@@ -1328,7 +1331,7 @@ mate.backcro <- function(SP, ncpus = 0, verbose = TRUE) {
 #'
 #' @examples
 #' # Generate annotation simulation parameters
-#' SP <- param.annot(qtn.num = 10)
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 #' # Generate phenotype simulation parameters

@@ -51,6 +51,7 @@ simer.Data <- function(jsonList = NULL, out = 'simer.qc', ncpus = 0, verbose = T
   
   # global parameters
   outpath <- dirname(out)
+  if (!dir.exists(outpath)) { dir.create(outpath) }
   maxLine <- 10000
   priority <- "speed"
   
@@ -101,9 +102,11 @@ simer.Data <- function(jsonList = NULL, out = 'simer.qc', ncpus = 0, verbose = T
   pheSep <- "\t"
   missing = c(NA, 'NA', 'Na', '.', '-', 'NAN', 'nan', 'na', 'N/A', 'n/a', '<NA>', '', '-9', 9999)
   
+  genoFileName <- pedFileName <- pheFileName <- NULL
+  
   logging.initialize("Simer.Data", outpath)
   
-  if (!is.null(fileBed)) {
+  if (length(fileBed) != 0) {
     logging.log("*************** Genotype Data Quality Control ***************\n", verbose = verbose)
     genoFileName <-
       simer.Data.Geno(
@@ -125,7 +128,7 @@ simer.Data <- function(jsonList = NULL, out = 'simer.qc', ncpus = 0, verbose = T
     jsonList$genotype <- dirname(genoFileName)
   }
   
-  if (!is.null(filePed)) {
+  if (length(filePed) != 0) {
     logging.log("*************** Pedigree Data Quality Control ***************\n", verbose = verbose)
     pedFileName <- 
       simer.Data.Ped(
@@ -145,7 +148,7 @@ simer.Data <- function(jsonList = NULL, out = 'simer.qc', ncpus = 0, verbose = T
     jsonList$pedigree <- pedFileName
   }
   
-  if (!is.null(filePhe)) {
+  if (length(filePhe) != 0) {
     logging.log("*************** Phenotype Data Quality Control **************\n", verbose = verbose)
     pheFileName <- 
       simer.Data.Pheno(
@@ -275,7 +278,7 @@ simer.Data.Impute <- function(fileMVP = NULL, fileBed = NULL, out = NULL, maxLin
       mapFile <- normalizePath(paste0(fileMVP, ".geno.map"), mustWork = TRUE)
       map <- read.table(mapFile, header = TRUE)
       tmpout <- tempfile()
-      MVP.Data.MVP2Bfile(bigmat = bigmat, map = map, out = tmpout)
+      simer.Data.MVP2Bfile(bigmat = bigmat, map = map, out = tmpout, threads = ncpus, verbose = verbose)
       system(paste('plink --bfile', tmpout, "--recode vcf-iid --out", tmpout))
     }
   }
@@ -305,7 +308,7 @@ simer.Data.Impute <- function(fileMVP = NULL, fileBed = NULL, out = NULL, maxLin
   
   system(paste0('plink --vcf ', tmpout, ".vcf.gz --make-bed --out ", tmpout))
   
-  MVP.Data.Bfile2MVP(bfile = tmpout, out = out)
+  simer.Data.Bfile2MVP(bfile = tmpout, out = out, threads = ncpus, verbose = verbose)
   
   return(out)
 }
@@ -359,14 +362,14 @@ simer.Data.Geno <- function(fileMVP = NULL, fileBed = NULL, filePlinkPed = NULL,
   t1 <- as.numeric(Sys.time())
   logging.log(" Start Checking Genotype Data.\n", verbose = verbose)
   
-  if (!is.null(filePed)) {
+  if (length(filePed) != 0) {
     ped <-  read.table(filePed, sep = '\t', header = TRUE)
     keepInds <- unique(unlist(ped))
   } else {
     keepInds <- NULL
   }
   
-  if (!is.null(filePhe)) {
+  if (length(filePhe) != 0) {
     if (length(filter) > 0) {
       pheList <- read.table(filePhe[1], header = TRUE)
       filterRow <- pheList[with(pheList, eval(parse(text = filter))), 1]
@@ -378,7 +381,7 @@ simer.Data.Geno <- function(fileMVP = NULL, fileBed = NULL, filePlinkPed = NULL,
     }
   }
   
-  if (!is.null(fileMVP)) {
+  if (FALSE) {
     if (length(fileMVP) == 0) { fileMVP <- NULL }
     if (length(filePed) == 0) { filePed <- NULL }
     if (is.null(out)) { out <- paste0(fileMVP, ".qc") }
@@ -421,11 +424,11 @@ simer.Data.Geno <- function(fileMVP = NULL, fileBed = NULL, filePlinkPed = NULL,
     }
     completeCmd <- 
       paste("plink", ifelse(is.null(fileBed), " --file", "--bfile"), fileBed,
-            ifelse(is.null(keepInds), "", paste("--keep simer.geno.ind")),
-            ifelse(is.null(filterGeno), "", paste("--geno", filterGeno)),
-            ifelse(is.null(filterHWE), "", paste("--hwe", filterHWE)),
-            ifelse(is.null(filterMind), "", paste("--mind", filterMind)),
-            ifelse(is.null(filterMAF), "", paste("--maf", filterMAF)),
+            ifelse(length(keepInds) == 0, "", paste("--keep simer.geno.ind")),
+            ifelse(length(filterGeno) == 0, "", paste("--geno", filterGeno)),
+            ifelse(length(filterHWE) == 0, "", paste("--hwe", filterHWE)),
+            ifelse(length(filterMind) == 0, "", paste("--mind", filterMind)),
+            ifelse(length(filterMAF) == 0, "", paste("--maf", filterMAF)),
             "--make-bed --out", out)
     
     system(completeCmd)
@@ -934,6 +937,7 @@ simer.Data.Env <- function(jsonList = NULL, header = TRUE, sep = '\t', ncpus = 1
   t1 <- as.numeric(Sys.time())
   
   planPhe <- jsonList$analysis_plan
+  auto_optim <- jsonList$auto_optimization
   
   for (i in 1:length(planPhe)) {
     # logging.log(" JOB NAME:", planPhe[[i]]$job_name, "\n", verbose = verbose)
@@ -971,37 +975,46 @@ simer.Data.Env <- function(jsonList = NULL, header = TRUE, sep = '\t', ncpus = 1
       covariates <- covariates[covariates %in% names(finalPhe)]
       fixedEffects <- fixedEffects[fixedEffects %in% names(finalPhe)]
       randomEffects <- randomEffects[randomEffects %in% names(finalPhe)]
-      lmPhe <- lm(paste(paste0(traits, "~1"), 
-                        paste(unlist(c(covariates, fixedEffects)), collapse = "+"), 
-                        sep = "+"), data = finalPhe)
-      # choose a model by BIC in a stepwise algorithm
-      file <- NULL
-      if (verbose) {
-        try(file <- get("logging.file", envir = package.env), silent = TRUE)
-        sink(file = file, append = TRUE, split = TRUE)
-      }
-      slmPhe <- step(lmPhe, k = log(nrow(finalPhe)))
-      if (verbose) {
-        sink()
+      
+      if (auto_optim) {
+        if (length(c(covariates, fixedEffects)) != 0) {
+          lmPhe <- lm(paste(paste0(traits, "~1"), 
+                            paste(unlist(c(covariates, fixedEffects)), collapse = "+"), 
+                            sep = "+"), data = finalPhe)
+          # choose a model by BIC in a stepwise algorithm
+          file <- NULL
+          if (verbose) {
+            try(file <- get("logging.file", envir = package.env), silent = TRUE)
+            sink(file = file, append = TRUE, split = TRUE)
+          }
+          slmPhe <- step(lmPhe, k = log(nrow(finalPhe)))
+          if (verbose) {
+            sink()
+          }
+          envName <- names(slmPhe$model)[-1]
+          covariates <- covariates[covariates %in% envName]
+          fixedEffects <- fixedEffects[fixedEffects %in% envName]
+          # reset covariates and fixed effects
+          planPheN[[j]]$job_traits[[1]]$covariates <- covariates
+          planPheN[[j]]$job_traits[[1]]$fixed_effects <- fixedEffects
+        }
+        
+        jsonListN$analysis_plan <- list(planPheN[[j]])
+        # select random effect which ratio less than threshold
+        gebv <- simer.Data.cHIBLUP(jsonList = jsonListN, ncpus = ncpus, verbose = verbose)
+        vc <- gebv[[1]]$varList[[1]]
+        randomEffectRatio <- vc[1:length(randomEffects)] / sum(vc)
+        randomEffects <- randomEffects[randomEffectRatio > randomRatio]
+        # reset covariates, fixed effects, and random effects
+        planPhe[[i]]$job_traits[[j]]$covariates <- covariates
+        planPhe[[i]]$job_traits[[j]]$fixed_effects <- fixedEffects
+        planPhe[[i]]$job_traits[[j]]$random_effects <- randomEffects
       }
       
-      envName <- names(slmPhe$model)[-1]
-      covariates <- covariates[covariates %in% envName]
-      fixedEffects <- fixedEffects[fixedEffects %in% envName]
-      # reset covariates and fixed effects
-      planPheN[[j]]$job_traits[[1]]$covariates <- covariates
-      planPheN[[j]]$job_traits[[1]]$fixed_effects <- fixedEffects
-      jsonListN$analysis_plan <- list(planPheN[[j]])
-      # select random effect which ratio less than threshold
-      gebv <- simer.Data.cHIBLUP(jsonList = jsonListN, ncpus = ncpus, verbose = verbose)
-      vc <- gebv[[1]]$varList[[1]]
-      randomEffectRatio <- vc[1:length(randomEffects)] / sum(vc)
-      randomEffects <- randomEffects[randomEffectRatio > randomRatio]
-      # reset covariates, fixed effects, and random effects
-      planPhe[[i]]$job_traits[[j]]$covariates <- covariates
-      planPhe[[i]]$job_traits[[j]]$fixed_effects <- fixedEffects
-      planPhe[[i]]$job_traits[[j]]$random_effects <- randomEffects
-      envFormula <- c(paste0(covariates, "(C)"), paste0(fixedEffects, "(F)"), paste0(randomEffects, "(R)"))
+      envFormula <- c(
+        paste0(planPhe[[i]]$job_traits[[j]]$fixed_effects, "(F)"), 
+        paste0(planPhe[[i]]$job_traits[[j]]$covariates, "(C)"), 
+        paste0(planPhe[[i]]$job_traits[[j]]$random_effects, "(R)"))
       envFormula <- envFormula[nchar(envFormula) > 3]
       logging.log(" *********************************************************\n",
                   "Model optimized by BIC and random variance ratio is:\n", 
@@ -1132,8 +1145,8 @@ simer.Data.cHIBLUP <- function(jsonList = NULL, mode = "A", vc.method = "AI", nc
         paste("--dcovar", fixedEffectsCmd),
         paste("--qcovar", covariatesCmd),
         paste("--rand", randomEffectsCmd),
-        ifelse(is.null(filePed), "", paste("--pedigree", filePed)),
-        ifelse(is.null(fileBed), "", paste("--bfile", fileBed)),
+        ifelse(length(filePed) == 0, "", paste("--pedigree", filePed)),
+        ifelse(length(fileBed) == 0, "", paste("--bfile", fileBed)),
         ifelse(mode == "A", "--add", paste("--add", "--dom")),
         paste("--vc-method", vc.method),
         paste("--threads", ncpus),
@@ -1244,6 +1257,7 @@ simer.Data.SELIND <- function(jsonList = NULL, ncpus = 10, verbose = TRUE) {
   
   BVIndex <- jsonList$breeding_value_index
   planPhe <- jsonList$analysis_plan
+  auto_optim <- jsonList$auto_optimization
   
   str1 <- unlist(strsplit(BVIndex, split = c("\\+|\\*")))
   str1 <- gsub("^\\s+|\\s+$", "", str1)
@@ -1251,11 +1265,10 @@ simer.Data.SELIND <- function(jsonList = NULL, ncpus = 10, verbose = TRUE) {
   BVWeight <- as.numeric(str1[!strIsNA])
   names(BVWeight) <- str1[strIsNA]
   
-  gebvs <- simer.Data.cHIBLUP(jsonList = jsonList, ncpus = ncpus, verbose = verbose)
-  
   covPList <- NULL
   covAList <- NULL
   pheNames <- NULL
+  usePhes <- NULL
   for (i in 1:length(planPhe)) {
     filePhe <- planPhe[[i]]$sample_info
     pheno <- read.table(filePhe, header = TRUE)
@@ -1278,34 +1291,57 @@ simer.Data.SELIND <- function(jsonList = NULL, ncpus = 10, verbose = TRUE) {
     } else {
       usePhe <- pheno[, pheName, drop = FALSE]
     }
+    if (is.null(usePhes)) {
+      usePhes <- usePhe
+    } else {
+      usePhes <- cbind(usePhes, usePhe)
+    }
     covP <- var(usePhe, na.rm = TRUE)
     covPList[[i]] <- covP
-    if (planPhe[[i]]$multi_trait) {
-      covAList[[i]] <- gebvs[[i]]$covA
-    } else {
-      covAList[[i]] <- gebvs[[i]]$varList[[1]][1]
+  }
+  
+  if (auto_optim) {
+    gebvs <- simer.Data.cHIBLUP(jsonList = jsonList, ncpus = ncpus, verbose = verbose)
+    
+    for (i in 1:length(planPhe)) {
+      if (planPhe[[i]]$multi_trait) {
+        covAList[[i]] <- gebvs[[i]]$covA
+      } else {
+        covAList[[i]] <- gebvs[[i]]$varList[[1]][1]
+      }
     }
-  }
+    
+    P <- as.matrix(Matrix::bdiag(covPList))
+    A <- as.matrix(Matrix::bdiag(covAList))
+    iP <- try(solve(P), silent = TRUE)
+    if (inherits(iP, "try-error")) {
+      iP <- MASS::ginv(P)
+    }
+    
+    # selection index
+    if (any(sort(pheNames) != sort(names(BVWeight)))) {
+      stop("Trait names should be consistent between planPhe and BVWeight!")
+    }
+    BVWeight <- BVWeight[match(pheNames, names(BVWeight))]
+    b <- iP %*% A %*% BVWeight
+    b <- round(as.vector(b), digits = 2)
   
-  P <- as.matrix(Matrix::bdiag(covPList))
-  A <- as.matrix(Matrix::bdiag(covAList))
-  iP <- try(solve(P), silent = TRUE)
-  if (inherits(iP, "try-error")) {
-    iP <- MASS::ginv(P)
-  }
+  } else {
+    if (is.null(jsonList$selection_index)) {
+      stop("A selection index is necessary!")
+    }
+    str1 <- unlist(strsplit(jsonList$selection_index, split = c("\\+|\\*")))
+    str1 <- gsub("^\\s+|\\s+$", "", str1)
+    strIsNA <- is.na(suppressWarnings(as.numeric(str1)))
+    b <- as.numeric(str1[!strIsNA])
+    names(b) <- str1[strIsNA]
+  } 
   
-  # selection index
-  if (any(sort(pheNames) != sort(names(BVWeight)))) {
-    stop("Trait names should be consistent between planPhe and BVWeight!")
-  }
-  BVWeight <- BVWeight[match(pheNames, names(BVWeight))]
-  b <- iP %*% A %*% BVWeight
-  b <- round(as.vector(b), digits = 2)
   selIndex <- paste(paste(b, names(BVWeight), sep = "*"), collapse = " + ")
-
+  
   # genetic progress
-  scores <- sort(as.matrix(usePhe) %*% b, decreasing = TRUE)
-  geneticProgress <- round(mean(scores[1:(0.8*length(scores))]) - mean(scores), digits = 2)
+  scores <- sort(as.matrix(usePhes) %*% b, decreasing = TRUE)
+  geneticProgress <- round(mean(scores[1:(0.1*length(scores))]) - mean(scores), digits = 2)
   selIndex <- paste0(selIndex, " = ", geneticProgress)
   
   logging.log(" *********************************************************\n",
@@ -1427,4 +1463,210 @@ checkEnv <- function(data, envName) {
     data <- data[, -drop, drop = FALSE]
   }
   return(data)
+}
+
+#' simer.Data.MVP2Bfile: To transform MVP data to binary format
+#' 
+#' transforming MVP data to binary format.
+#' 
+#' Build date: Sep 12, 2018
+#' Last update: July 20, 2022
+#'
+#' @author Haohao Zhang and Dong Yin
+#' 
+#' @param bigmat Genotype in bigmatrix format (0,1,2).
+#' @param map the map file.
+#' @param pheno the phenotype file.
+#' @param out the name of output file.
+#' @param threads the number of threads used, if NULL, (logical core number - 1) is automatically used.
+#' @param verbose whether to print the reminder.
+#'
+#' @return NULL
+#' Output files:
+#' .bed, .bim, .fam
+#' 
+#' @export
+#' 
+#' @examples
+#' # Generate bigmat and map
+#' bigmat <- as.big.matrix(matrix(1:6, 3, 2))
+#' map <- generate.map(pop.marker = 3)
+#' 
+#' # Data converting
+#' simer.Data.MVP2Bfile(bigmat, map, out=tempfile("outfile"))
+simer.Data.MVP2Bfile <- function(bigmat, map, pheno = NULL, out = 'simer', threads = 10, verbose = TRUE) {
+  t1 <- as.numeric(Sys.time())
+  
+  logging.log(paste0("inds: ", ncol(bigmat), "\tmarkers:", nrow(bigmat), '\n'), verbose = verbose)
+  
+  # write bed file
+  write_bfile(bigmat@address, out, threads = threads, verbose = verbose)
+  
+  # write fam
+  #  1. Family ID ('FID')
+  #  2. Within-family ID ('IID'; cannot be '0')
+  #  3. Within-family ID of father ('0' if father isn't in dataset)
+  #  4. Within-family ID of mother ('0' if mother isn't in dataset)
+  #  5. Sex code ('1' = male, '2' = female, '0' = unknown)
+  #  6. Phenotype value ('1' = control, '2' = case, '-9'/'0'/non-numeric = missing data if case/control)
+  
+  if (is.null(pheno)) {
+    ind <- paste0("ind", 1:ncol(bigmat))
+    sir <- rep(0, ncol(bigmat))
+    dam <- rep(0, ncol(bigmat))
+    sex <- rep(0, ncol(bigmat))
+    pheno <- rep(-9, ncol(bigmat))
+    message("pheno is NULL, automatically named individuals.")
+    
+  } else if (ncol(pheno) == 1) {
+    ind <- pheno[, 1]
+    sir <- rep(0, ncol(bigmat))
+    dam <- rep(0, ncol(bigmat))
+    sex <- rep(0, ncol(bigmat))
+    pheno <- rep(-9, ncol(bigmat))
+    
+  } else {
+    if (ncol(pheno) > 2) { 
+      message("Only the first phenotype is written to the fam file, and the remaining phenotypes are ignored.")
+    }
+    ind <- pheno[, 1]
+    sir <- pheno[, 5]
+    dam <- pheno[, 6]
+    sex <- pheno[, 7]
+    pheno <- pheno[, 8]
+  }
+  
+  fam <- cbind(ind, ind, sir, dam, sex, pheno)
+  write.table(fam, paste0(out, '.fam'), quote = FALSE, row.names = FALSE, col.names = FALSE, sep = ' ')
+  
+  # write bim
+  #  1. Chromosome code (either an integer, or 'X'/'Y'/'XY'/'MT'; '0' indicates unknown) or name
+  #  2. Variant identifier
+  #  3. Position in morgans or centimorgans (safe to use dummy value of '0')
+  #  4. Base-pair coordinate (normally 1-based, but 0 ok; limited to 231-2)
+  #  5. Allele 1 (corresponding to clear bits in .bed; usually minor)
+  #  6. Allele 2 (corresponding to set bits in .bed; usually major)
+  bim <- cbind(map[, 2], map[, 1], 0, map[, 3], map[, 4], map[, 5])
+  write.table(bim, paste0(out, '.bim'), quote = FALSE, row.names = FALSE, col.names = FALSE, sep = '\t')
+  t2 <- as.numeric(Sys.time())
+  logging.log("Preparation for GENOTYPE data is done within", format_time(t2 - t1), "\n", verbose = verbose)
+}
+
+#' simer.Data.Bfile2MVP: To transform plink binary data to MVP package
+#' 
+#' transforming plink binary data to MVP package.
+#' 
+#' Build date: Sep 12, 2018
+#' Last update: July 25, 2022
+#'
+#' @author Haohao Zhang and Dong Yin
+#' 
+#' @param bfile Genotype in binary format (.bed, .bim, .fam).
+#' @param out the name of output file.
+#' @param maxLine the max number of line to write to big matrix for each loop.
+#' @param priority 'memory' or 'speed'.
+#' @param type.geno the type of genotype elements.
+#' @param threads number of thread for transforming.
+#' @param verbose whether to print the reminder.
+#'
+#' @return number of individuals and markers.
+#' Output files:
+#' genotype.desc, genotype.bin: genotype file in bigmemory format
+#' phenotype.phe: ordered phenotype file, same taxa order with genotype file
+#' map.map: SNP information
+#' 
+#' @export
+#' 
+#' @examples
+#' # Get bfile path
+#' bfilePath <- file.path(system.file("extdata", "02plinkb", package = "simer"), "demo")
+#' 
+#' # Data converting
+#' simer.Data.Bfile2MVP(bfilePath, tempfile("outfile"))
+simer.Data.Bfile2MVP <- function(bfile, out = 'simer', maxLine = 1e4, priority = 'speed', type.geno = 'char', threads = 10, verbose = TRUE) {
+  t1 <- as.numeric(Sys.time())
+  bim_file <- normalizePath(paste0(bfile, '.bim'), mustWork = TRUE)
+  fam_file <- normalizePath(paste0(bfile, '.fam'), mustWork = TRUE)
+  bed_file <- normalizePath(paste0(bfile, '.bed'), mustWork = TRUE)
+  # check old file
+  backingfile <- paste0(basename(out), ".geno.bin")
+  descriptorfile <- paste0(basename(out), ".geno.desc")
+  remove_bigmatrix(out)
+  
+  # parser map
+  logging.log("Reading file...\n", verbose = verbose)
+  m <- simer.Data.Map(bim_file, out = out, cols = c(2, 1, 4, 6, 5), header = FALSE)
+  
+  # parser phenotype, ind file
+  fam <- read.table(fam_file, header = FALSE)
+  n <- nrow(fam)
+  write.table(fam[, 2], paste0( out, '.geno.ind'), row.names = FALSE, col.names = FALSE, quote = FALSE)
+  
+  logging.log(paste0("inds: ", n, "\tmarkers:", m, '\n'), verbose = verbose)
+  
+  # parse genotype
+  bigmat <- filebacked.big.matrix(
+    nrow = m,
+    ncol = n,
+    type = type.geno,
+    backingfile = backingfile,
+    backingpath = dirname(out),
+    descriptorfile = descriptorfile,
+    dimnames = c(NULL, NULL)
+  )
+  
+  if (priority == "speed") { maxLine <- -1 }
+  read_bfile(bed_file = bed_file, pBigMat = bigmat@address, maxLine = maxLine, threads = threads, verbose = verbose)
+  t2 <- as.numeric(Sys.time())
+  logging.log("Preparation for GENOTYPE data is done within", format_time(t2 - t1), "\n", verbose = verbose)
+  return(invisible(c(m, n)))
+}
+
+#' simer.Data.Map: To check map file
+#' 
+#' checking map file.
+#' 
+#' Build date: Sep 12, 2018
+#' Last update: July 25, 2022
+#'
+#' @author Haohao Zhang and Dong Yin
+#' 
+#' @param map the name of map file or map object(data.frame or matrix)
+#' @param out the name of output file
+#' @param cols selected columns
+#' @param header whether the file contains header
+#' @param sep seperator of the file
+#' @param verbose whether to print detail.
+#' 
+#' @return 
+#' Output file:
+#' <out>.map
+#' 
+#' @export
+#' 
+#' @examples
+#' # Get map path
+#' mapPath <- system.file("extdata", "01bigmemory", "demo.geno.map", package = "simer")
+#' 
+#' # Check map data
+#' simer.Data.Map(mapPath, tempfile("outfile"))
+simer.Data.Map <- function(map, out = 'simer', cols = 1:5, header = TRUE, sep = '\t', verbose = TRUE) {
+  t1 <- as.numeric(Sys.time())
+  if (is.character(map) && !is.data.frame(map)) {
+    map <- read.table(map, header = header, stringsAsFactors = FALSE)
+  }
+  map <- map[, cols]
+  colnames(map) <- c("SNP", "CHROM", "POS", "REF", "ALT")
+  if (length(unique(map[, 1])) != nrow(map)) {
+    warning("WARNING: SNP is not unique and has been automatically renamed.")
+    map[, 1] <- paste(map[, 2], map[, 3], sep = "-")
+  }
+  allels <- map[, 4:5]
+  allels[allels == 0] <- '.'
+  map[, 4:5] <- allels
+  
+  write.table(map, paste0(out, ".geno.map"), row.names = FALSE, col.names = TRUE, sep = '\t', quote = FALSE)
+  t2 <- as.numeric(Sys.time())
+  logging.log("Preparation for MAP data is done within", format_time(t2 - t1), "\n", verbose = verbose)
+  return(nrow(map))
 }

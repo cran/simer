@@ -582,13 +582,14 @@ write.file <- function(SP) {
   out.pheno.gen <- SP$global$out.pheno.gen
   verbose <- SP$global$verbose
   incols <- SP$geno$incols
+  ncpus <- SP$global$ncpus
   
   if (is.null(outpath)) return(SP)
   
   pop.marker <- nrow(SP$geno$pop.geno[[1]])
   pop.inds <- sapply(out.geno.gen, function(i) {
     return(ncol(SP$geno$pop.geno[[i]]) / incols)
-  })[out.geno.gen]
+  })
   pop.ind <- sum(pop.inds)
   
   if (max(out.geno.gen) > SP$reprod$pop.gen) {
@@ -630,9 +631,9 @@ write.file <- function(SP) {
   pop.inds <- c(0, pop.inds[-length(pop.inds)]) + 1
   for (i in 1:length(out.geno.gen)) {
     if (incols == 1) {
-      BigMat2BigMat(geno.total@address, SP$geno$pop.geno[[out.geno.gen[i]]]@address, op = pop.inds[i])
+      BigMat2BigMat(geno.total@address, SP$geno$pop.geno[[out.geno.gen[i]]]@address, op = pop.inds[i], threads = ncpus)
     } else {
-      Mat2BigMat(geno.total@address, geno.cvt1(SP$geno$pop.geno[[out.geno.gen[i]]][]), op = pop.inds[i])
+      Mat2BigMat(geno.total@address, geno.cvt1(SP$geno$pop.geno[[out.geno.gen[i]]][]), op = pop.inds[i], threads = ncpus)
     }
   }
   
@@ -644,7 +645,7 @@ write.file <- function(SP) {
   }))
   
   if (out.format == "numeric") {
-    write.table(pheno.total[, 1], file = file.path(directory.rep, paste0(out, ".geno.id")), sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
+    write.table(pheno.total[, 1], file = file.path(directory.rep, paste0(out, ".geno.ind")), sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
     write.table(SP$map$pop.map, file = file.path(directory.rep, paste0(out, ".geno.map")), row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
     if (!is.null(SP$map$pop.map.GxG)) {
       write.table(SP$map$pop.map.GxG, file = file.path(directory.rep, paste0(out, ".GxG.geno.map")), row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
@@ -654,8 +655,7 @@ write.file <- function(SP) {
     pheno.geno <- do.call(rbind, lapply(out.geno.gen, function(i) {
       return(SP$pheno$pop[[i]])
     }))
-    MVP.Data.MVP2Bfile(bigmat = geno.total, map = SP$map$pop.map, pheno = pheno.geno[, 1, drop = FALSE], out = file.path(directory.rep, out), verbose = verbose)
-    remove_bigmatrix(file.path(directory.rep, out))
+    simer.Data.MVP2Bfile(bigmat = geno.total, map = SP$map$pop.map, pheno = pheno.geno, out = file.path(directory.rep, out), threads = ncpus, verbose = verbose)
     geno.total <- 0
   }
   write.table(pheno.total[, c(1, 5, 6)], file = file.path(directory.rep, paste0(out, ".ped")), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
@@ -664,6 +664,7 @@ write.file <- function(SP) {
   logging.log(" All files have been saved successfully!\n", verbose = verbose)
   
   rm(geno.total); rm(pheno.total); rm(pheno.geno); gc()
+  remove_bigmatrix(file.path(directory.rep, out))
   
   return(SP)
 }

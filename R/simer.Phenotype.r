@@ -54,11 +54,15 @@
 #' pop.env <- list(
 #'   F1 = list( # fixed effect 1
 #'     level = c("1", "2"),
-#'     eff = list(tr1 = c(50, 30), tr2 = c(50, 30))
+#'     effect = list(tr1 = c(50, 30), tr2 = c(50, 30))
 #'   ), 
 #'   F2 = list( # fixed effect 2
 #'     level = c("d1", "d2", "d3"),
-#'     eff = list(tr1 = c(10, 20, 30), tr2 = c(10, 20, 30))
+#'     effect = list(tr1 = c(10, 20, 30), tr2 = c(10, 20, 30))
+#'   ),
+#'   C1 = list( # covariate 1
+#'     level = c(70, 80, 90),
+#'     slope = list(tr1 = 1.5, tr2 = 1.5)
 #'   ),
 #'   R1 = list( # random effect 1
 #'     level = c("l1", "l2", "l3"),
@@ -67,7 +71,8 @@
 #' )
 #' 
 #' # Generate genotype simulation parameters
-#' SP <- param.annot(qtn.num = diag(c(10, 10)), qtn.model = "A + D + A:D")
+#' SP <- param.annot(qtn.num = list(tr1 = 10, tr2 = 10),
+#'                   qtn.model = "A + D + A:D")
 #' # Generate annotation simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 #' # Generate phenotype simulation parameters
@@ -79,8 +84,8 @@
 #'   pop.env = pop.env,
 #'   phe.var = list(tr1 = 100, tr2 = 100),
 #'   phe.model = list(
-#'     tr1 = "T1 = A + D + A:D + F1 + F2 + R1 + A:F1 + E",
-#'     tr2 = "T2 = A + D + A:D + F1 + F2 + R1 + A:F1 + E"
+#'     tr1 = "T1 = A + D + A:D + F1 + F2 + C1 + R1 + A:F1 + E",
+#'     tr2 = "T2 = A + D + A:D + F1 + F2 + C1 + R1 + A:F1 + E"
 #'   )
 #' )
 #' 
@@ -152,6 +157,11 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
       old.env <- pop[[env.name[i]]]
       if (!(env.name[i] %in% names(pop))) {
         logging.log(" Add", env.name[i], "to population...\n", verbose = verbose)
+        if (!is.null(new.env$slope)) {
+          if (!is.numeric(new.env$level)) {
+            stop("The levels of covariates should be numeric!")
+          }
+        }
         env.order <- sample(1:length(new.env$level), pop.ind, replace = T)
         env.list[[i]] <- cbind(env.list[[i]], new.env$level[env.order])
         colnames(env.list[[i]])[ncol(env.list[[i]])] <- env.name[i]
@@ -248,18 +258,22 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
         phe.eff[[i]] <- cbind(phe.eff[[i]], phe.dom)
         colnames(phe.eff[[i]])[ncol(phe.eff[[i]])] <- paste0(phe.name[[i]], "_D_eff")
       
-      # fixed and random effect
+      # fixed effect, covariate, and random effect
       } else if (eff.name[j] %in% names(pop)) {
         new.env <- pop.env[[eff.name[j]]]
-        if (is.null(new.env$ratio)) {
-          if (length(new.env$level) != length(new.env$eff[[i]])) {
-            stop("The length of level and eff should be same!")
+        if (!is.null(new.env$effect)) {
+          if (length(new.env$level) != length(new.env$effect[[i]])) {
+            stop("The length of level and effect should be same!")
           }
         } else {
-          new.env$eff[[i]] <- rnorm(length(new.env$level))
+          if (!is.null(new.env$slope)) {
+            new.env$effect[[i]] <- new.env$level * new.env$slope[[i]]
+          } else {
+            new.env$effect[[i]] <- rnorm(length(new.env$level))
+          }
         }
         env.order <- match(pop[[eff.name[j]]], new.env$level)
-        phe.env <- new.env$eff[[i]][env.order]
+        phe.env <- new.env$effect[[i]][env.order]
         eff.ratio <- pop.env[[eff.name[j]]]$ratio[[i]]
         if (!is.null(eff.ratio)) {
           scale <- as.numeric(sqrt(phe.var[[i]] * eff.ratio / var(phe.env)))
@@ -355,7 +369,7 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
     if (options("simer.show.warning") == TRUE) {
       eff.cor <- cor(phe.eff[[i]])
       diag(eff.cor) <- 0
-      if (sum(eff.cor > 0.5)) {
+      if (sum(eff.cor > 0.5, na.rm = TRUE)) {
         warning("There are hign-correlations between fixed effects or fixed effects and random effects, and it will reduce the accuracy of effects in the simulation!")
       }
     }
@@ -458,6 +472,7 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
   
   pop <- do.call(rbind, rep(list(pop), pop.rep))
   pop <- cbind(pop, phe, TBV, TGV, phe.eff)
+  pop <- pop[order(pop[, 1]), ]
   
   if (useAllGeno) {
     for (i in 1:length(SP$pheno$pop)) {
