@@ -4,10 +4,12 @@
 \alias{simer.Data.SELIND}
 \title{Selection index construction}
 \usage{
-simer.Data.SELIND(jsonList = NULL, ncpus = 10, verbose = TRUE)
+simer.Data.SELIND(jsonList = NULL, hiblupPath = "", ncpus = 10, verbose = TRUE)
 }
 \arguments{
 \item{jsonList}{the list of selection index construction parameters.}
+
+\item{hiblupPath}{the path of HIBLUP software.}
 
 \item{ncpus}{the number of threads used, if NULL, (logical core number - 1) is automatically used.}
 
@@ -21,7 +23,7 @@ the function returns a list containing
 \item{$selection_index}{the selection index for all traits.}
 \item{$breeding_value_index}{the breeding value index for all traits.}
 \item{$quality_control_plan}{a list of parameters for data quality control.}
-\item{$analysis_plan}{a list of parameters for genetic evaluation.}
+\item{$breeding_plan}{a list of parameters for genetic evaluation.}
 }
 }
 \description{
@@ -34,7 +36,7 @@ Last update: Apr 28, 2022
 \examples{
 # Read JSON file
 jsonFile <- system.file("extdata", "04breeding_plan", "plan1.json", package = "simer")
-jsonList <- rjson::fromJSON(file = jsonFile)
+jsonList <- jsonlite::fromJSON(txt = jsonFile, simplifyVector = FALSE)
 
 \dontrun{
 # It needs 'hiblup' software

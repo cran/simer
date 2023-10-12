@@ -31,6 +31,7 @@
 #' \item{$pheno$pop.rep}{the repeated times of repeated records.}
 #' \item{$pheno$pop.rep.bal}{whether repeated records are balanced.}
 #' \item{$pheno$pop.env}{a list of environmental factors setting.}
+#' \item{$pheno$phe.type}{a list of phenotype types.}
 #' \item{$pheno$phe.model}{a list of genetic model of phenotype such as "T1 = A + E".}
 #' \item{$pheno$phe.h2A}{a list of additive heritability.}
 #' \item{$pheno$phe.h2D}{a list of dominant heritability.}
@@ -50,6 +51,7 @@
 #' @references Kao C and Zeng Z (2002) <https://www.genetics.org/content/160/3/1243.long>
 #'
 #' @examples
+#' \donttest{
 #' # Prepare environmental factor list
 #' pop.env <- list(
 #'   F1 = list( # fixed effect 1
@@ -71,7 +73,7 @@
 #' )
 #' 
 #' # Generate genotype simulation parameters
-#' SP <- param.annot(qtn.num = list(tr1 = 10, tr2 = 10),
+#' SP <- param.annot(qtn.num = list(tr1 = c(2, 8), tr2 = 10),
 #'                   qtn.model = "A + D + A:D")
 #' # Generate annotation simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
@@ -82,11 +84,15 @@
 #'   pop.rep = 2, # 2 repeated record
 #'   pop.rep.bal = TRUE, # balanced repeated record
 #'   pop.env = pop.env,
-#'   phe.var = list(tr1 = 100, tr2 = 100),
+#'   phe.type = list(
+#'     tr1 = "continuous",
+#'     tr2 = list(case = 0.01, control = 0.99)
+#'   ),
 #'   phe.model = list(
 #'     tr1 = "T1 = A + D + A:D + F1 + F2 + C1 + R1 + A:F1 + E",
 #'     tr2 = "T2 = A + D + A:D + F1 + F2 + C1 + R1 + A:F1 + E"
-#'   )
+#'   ),
+#'   phe.var = list(tr1 = 100, tr2 = 100)
 #' )
 #' 
 #' # Run annotation simulation
@@ -95,6 +101,7 @@
 #' SP <- genotype(SP)
 #' # Run phenotype simulation
 #' SP <- phenotype(SP)
+#' }
 phenotype <- function(SP = NULL, verbose = TRUE) {
 
 ### Start phenotype simlulation
@@ -106,6 +113,9 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
   }
   pop <- SP$pheno$pop
   pop.ind <- SP$pheno$pop.ind
+  if (!is.null(SP$geno$pop.geno)) {
+    SP$pheno$pop.ind <- pop.ind <- ncol(SP$geno$pop.geno[[length(SP$geno$pop.geno)]]) / SP$geno$incols
+  }
   if (is.null(pop) & !is.null(pop.ind)) {
     pop <- generate.pop(pop.ind = pop.ind)
     SP$pheno$pop <- list(pop)
@@ -125,10 +135,13 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
   pop.rep <- SP$pheno$pop.rep
   pop.rep.bal <- SP$pheno$pop.rep.bal
   pop.map <- SP$map$pop.map
+  qtn.num <- SP$map$qtn.num
+  qtn.var <- SP$map$qtn.var
   pop.map.GxG <- SP$map$pop.map.GxG
   pop.geno <- SP$geno$pop.geno
   incols <- SP$geno$incols
   pop.env <- SP$pheno$pop.env
+  phe.type <- SP$pheno$phe.type
   phe.model <- SP$pheno$phe.model
   phe.h2A <- SP$pheno$phe.h2A
   phe.h2D <- SP$pheno$phe.h2D
@@ -142,6 +155,11 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
   phe.corPE <- SP$pheno$phe.corPE
   phe.corE <- SP$pheno$phe.corE
   
+  if (!useAllGeno) {
+    pop.rep <- 1
+    phe.corPE <- NULL
+  }
+  
   if (is.null(SP)) {
     stop("'SP' should be specified!")
   }
@@ -152,25 +170,27 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
   if (!is.null(pop.env)) {
     env.name <- names(pop.env)
     env.list <- rep(list(NULL), length(env.name))
+    names(env.list) <- env.name
     for (i in 1:length(env.name)) {
       new.env <- pop.env[[env.name[i]]]
       old.env <- pop[[env.name[i]]]
       if (!(env.name[i] %in% names(pop))) {
-        logging.log(" Add", env.name[i], "to population...\n", verbose = verbose)
+        # logging.log(" Add", env.name[i], "to population...\n", verbose = verbose)
         if (!is.null(new.env$slope)) {
           if (!is.numeric(new.env$level)) {
             stop("The levels of covariates should be numeric!")
           }
         }
-        env.order <- sample(1:length(new.env$level), pop.ind, replace = T)
-        env.list[[i]] <- cbind(env.list[[i]], new.env$level[env.order])
-        colnames(env.list[[i]])[ncol(env.list[[i]])] <- env.name[i]
+        env.order <- sample(1:length(new.env$level), pop.ind, replace = TRUE)
+        env.list[[i]] <- new.env$level[env.order]
+        
       } else {
         if (any(sort(new.env$level) != sort(unique(old.env)))) {
           stop(paste0("The levels of ", env.name[[i]], " should be ", paste(sort(unique(old.env)), collapse = ', '), "!"))
         }
       }
     }
+    
     pop <- cbind(pop, as.data.frame(do.call(cbind, env.list)))
   }
   
@@ -214,10 +234,20 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
         }
         # (0, 1, 2) -> (-1, 0, 1)
         pop.qtn.add[[i]] <- pop.qtn.add[[i]] - 1
-        phe.add <- crossprod(pop.qtn.add[[i]], qtn.eff)
+        phe.add <- matrix(0, pop.ind, 1)
+        qtn.num.cum <- cumsum(qtn.num[[i]])
+        for (k in 1:length(qtn.num[[i]])) {
+          pop.qtn.add.tmp <- pop.qtn.add[[i]][(qtn.num.cum[k]-qtn.num[[i]][k]+1):(qtn.num.cum[k]), , drop = FALSE]
+          qtn.eff.tmp <- qtn.eff[(qtn.num.cum[k]-qtn.num[[i]][k]+1):(qtn.num.cum[k])]
+          phe.add.tmp <- crossprod(pop.qtn.add.tmp, qtn.eff.tmp)
+          scale <- as.numeric(sqrt(qtn.var[[i]][k] / var(phe.add.tmp)))
+          SP$map$pop.map[[paste0("QTN", i, "_A")]][qtn.pos.add[[i]][(qtn.num.cum[k]-qtn.num[[i]][k]+1):(qtn.num.cum[k])]] <- SP$map$pop.map[[paste0("QTN", i, "_A")]][qtn.pos.add[[i]][(qtn.num.cum[k]-qtn.num[[i]][k]+1):(qtn.num.cum[k])]] * scale
+          phe.add.tmp <- phe.add.tmp * scale
+          phe.add <- phe.add + phe.add.tmp
+        }
         if (length(phe.var) < i) {
           phe.var[[i]] <- var(phe.add) / phe.h2A[[i]]
-        } 
+        }
         scale <- as.numeric(sqrt(phe.var[[i]] * phe.h2A[[i]] / var(phe.add)))
         SP$map$pop.map[[paste0("QTN", i, "_A")]] <- SP$map$pop.map[[paste0("QTN", i, "_A")]] * scale
         phe.add <- phe.add * scale
@@ -250,7 +280,17 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
         # (0, 1, 2) -> (-0.5, 0.5, -0.5)
         pop.qtn.dom[[i]][pop.qtn.dom[[i]] == 2] <- 0
         pop.qtn.dom[[i]] <- pop.qtn.dom[[i]] - 0.5
-        phe.dom <- crossprod(pop.qtn.dom[[i]], qtn.eff)
+        phe.dom <- matrix(0, pop.ind, 1)
+        qtn.num.cum <- cumsum(qtn.num[[i]])
+        for (k in 1:length(qtn.num[[i]])) {
+          pop.qtn.dom.tmp <- pop.qtn.dom[[i]][(qtn.num.cum[k]-qtn.num[[i]][k]+1):(qtn.num.cum[k]), , drop = FALSE]
+          qtn.eff.tmp <- qtn.eff[(qtn.num.cum[k]-qtn.num[[i]][k]+1):(qtn.num.cum[k])]
+          phe.dom.tmp <- crossprod(pop.qtn.dom.tmp, qtn.eff.tmp)
+          scale <- as.numeric(sqrt(qtn.var[[i]][k] / var(phe.dom.tmp)))
+          SP$map$pop.map[[paste0("QTN", i, "_D")]][qtn.pos.dom[[i]][(qtn.num.cum[k]-qtn.num[[i]][k]+1):(qtn.num.cum[k])]] <- SP$map$pop.map[[paste0("QTN", i, "_D")]][qtn.pos.dom[[i]][(qtn.num.cum[k]-qtn.num[[i]][k]+1):(qtn.num.cum[k])]] * scale
+          phe.dom.tmp <- phe.dom.tmp * scale
+          phe.dom <- phe.dom + phe.dom.tmp
+        }
         scale <- as.numeric(sqrt(phe.var[[i]] * phe.h2D[[i]] / var(phe.dom)))
         SP$map$pop.map[[paste0("QTN", i, "_D")]] <- SP$map$pop.map[[paste0("QTN", i, "_D")]] * scale
         phe.dom <- phe.dom * scale
@@ -390,9 +430,10 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
       Sigma <- diag(sqrt(phe.varA)) %*% phe.corA %*% diag(sqrt(phe.varA))
       phe.add <- build.cov(df = phe.add, Sigma = Sigma)
       phe.eff[, grep(pattern = "_A_", x = names(phe.eff))] <- phe.add
-      for (i in 1:nTrait) {
-        SP$map$pop.map[[paste0("QTN", i, "_A")]][qtn.pos.add[[i]]] <- c(crossprod(ginv(pop.qtn.add[[i]]), phe.add[, i]))
-      }
+      # it can be better
+      # for (i in 1:nTrait) {
+      #   SP$map$pop.map[[paste0("QTN", i, "_A")]][qtn.pos.add[[i]]] <- c(crossprod(ginv(pop.qtn.add[[i]]), phe.add[, i]))
+      # }
     }
     if (!is.null(phe.corD)) {
       phe.dom <- phe.eff[, grep(pattern = "_D_", x = names(phe.eff))]
@@ -400,9 +441,10 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
       Sigma <- diag(sqrt(phe.varD)) %*% phe.corD %*% diag(sqrt(phe.varD))
       phe.dom <- build.cov(df = phe.dom, Sigma = Sigma)
       phe.eff[, grep(pattern = "_D_", x = names(phe.eff))] <- phe.dom
-      for (i in 1:nTrait) {
-        SP$map$pop.map[[paste0("QTN", i, "_D")]][qtn.pos.dom[[i]]] <- c(crossprod(ginv(pop.qtn.dom[[i]]), phe.dom[, i]))
-      }
+      # it can be better
+      # for (i in 1:nTrait) {
+      #   SP$map$pop.map[[paste0("QTN", i, "_D")]][qtn.pos.dom[[i]]] <- c(crossprod(ginv(pop.qtn.dom[[i]]), phe.dom[, i]))
+      # }
     }
     if (!is.null(phe.corGxG)) {
       eff.name <- names(phe.corGxG)
@@ -413,9 +455,10 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
         Sigma <- diag(sqrt(phe.varGxG)) %*% phe.corGxG[[j]] %*% diag(sqrt(phe.varGxG))
         phe.GxG <- build.cov(df = phe.GxG, Sigma = Sigma)
         phe.eff[, grep(pattern = paste0("_", eff.name[j], "_"), x = names(phe.eff))] <- phe.GxG
-        for (i in 1:nTrait) {
-          SP$map$pop.map.GxG[qtn.pos.GxG[[i]], i + 1] <- c(crossprod(ginv(pop.qtn.GxG[[i]]), phe.GxG[, i]))
-        }
+        # it can be better
+        # for (i in 1:nTrait) {
+        #   SP$map$pop.map.GxG[qtn.pos.GxG[[i]], i + 1] <- c(crossprod(ginv(pop.qtn.GxG[[i]]), phe.GxG[, i]))
+        # }
       }
     }
     if (!is.null(phe.corPE)) {
@@ -469,6 +512,23 @@ phenotype <- function(SP = NULL, verbose = TRUE) {
     return(rowSums(phe.eff[, grep(pattern = paste0(phe.name[[i]], c("_A_eff", "_D_eff"), collapse = "|"), x = names(phe.eff)), drop = FALSE]))
   })))
   names(TGV) <- paste0(phe.name, "_TGV")
+  
+  # apply phenotype type
+  for (i in 1:length(phe.type)) {
+    if (is.list(phe.type[[i]])) {
+      cutPoint <- unlist(phe.type[[i]])
+      cutPoint <- cutPoint / sum(cutPoint)
+      cutPoint <- c(-1, cumsum(cutPoint) * 100)
+      pheTmp <- phe[[i]] - min(phe[[i]])
+      pheTmp <- pheTmp / max(pheTmp) * 100
+      phe[[i]] <- cut(pheTmp, cutPoint, labels = names(phe.type[[i]]))
+      
+    } else {
+      if (phe.type[[i]] != "continuous") {
+        stop("Please input a correct 'phe.type'")
+      }
+    }
+  }
   
   pop <- do.call(rbind, rep(list(pop), pop.rep))
   pop <- cbind(pop, phe, TBV, TGV, phe.eff)

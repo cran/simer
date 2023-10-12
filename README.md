@@ -1,11 +1,11 @@
 # SIMER 
-[![GitHub issues](https://img.shields.io/github/issues/xiaolei-lab/SIMER?color=green)](https://github.com/xiaolei-lab/SIMER/issues/new) [![CRAN Version](https://www.r-pkg.org/badges/version/simer?color=yellow)](https://CRAN.R-project.org/package=simer) [![](https://img.shields.io/badge/GitHub-0.9.0.0-blueviolet.svg)](https://github.com/xiaolei-lab/SIMER) ![](http://cranlogs.r-pkg.org/badges/grand-total/simer?color=red) [![](https://cranlogs.r-pkg.org/badges/last-month/simer)](https://CRAN.R-project.org/package=simer) <a href="https://hits.seeyoufarm.com"/><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fxiaolei-lab%2FSIMER"/></a>
+[![GitHub issues](https://img.shields.io/github/issues/xiaolei-lab/SIMER?color=green)](https://github.com/xiaolei-lab/SIMER/issues/new) [![CRAN Version](https://www.r-pkg.org/badges/version/simer?color=yellow)](https://CRAN.R-project.org/package=simer) [![](https://img.shields.io/badge/GitHub-0.9.0.3-blueviolet.svg)](https://github.com/xiaolei-lab/SIMER) ![](http://cranlogs.r-pkg.org/badges/grand-total/simer?color=red) [![](https://cranlogs.r-pkg.org/badges/last-month/simer)](https://CRAN.R-project.org/package=simer) <a href="https://hits.seeyoufarm.com"/><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fxiaolei-lab%2FSIMER"/>
 
 ## Data Simulation for Life Science and Breeding
 
 ### Authors:
 ***Design and Maintenance:*** Dong Yin, Xuanning Zhang, Lilin Yin ,Haohao Zhang, and ***Xiaolei Liu***.  
-***Contributors:*** Zhenshuang Tang, Jingya Xu, Xiaohui Yuan, Xinyun Li, and Shuhong Zhao.
+***Contributors:*** Zhenshuang Tang, Jingya Xu, Xiaohui Yuan, Xiang Zhou, Xinyun Li, and Shuhong Zhao.
 
 ***If you have any bug reports or questions, please feed back :point_right:[here](https://github.com/xiaolei-lab/SIMER/issues/new):point_left:.***
 
@@ -14,7 +14,7 @@
 <table>
     <tr>
 	<td><g-emoji class="g-emoji" alias="mailbox" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/1f4eb.png">📫</g-emoji> <strong><a href="https://www.hiblup.com/" rel="nofollow">HIBLUP</a></strong>: Versatile and easy-to-use GS toolbox.</td>
-	<td><g-emoji class="g-emoji" alias="mountain_snow" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/1f3d4.png">🏔️</g-emoji> <strong><a href="http://iswine.iomics.pro/pig-iqgs/iqgs/index" rel="nofollow">ISWINE</a></strong>: an omics knowledgebase for swine.</td>
+	<td><g-emoji class="g-emoji" alias="mountain_snow" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/1f3d4.png">🏔️</g-emoji> <strong><a href="https://ianimal.pro/" rel="nofollow">IAnimal</a></strong>: an omics knowledgebase for animals.</td>
     </tr>
     <tr>
         <td><g-emoji class="g-emoji" alias="biking_man" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/1f6b4-2642.png">🚴&zwj;♂️</g-emoji> <strong><a href="https://github.com/YinLiLin/KAML">KAML</a></strong>: Advanced GS method for complex traits.</td>
@@ -32,7 +32,7 @@
 - [Installation](#installation)
 - [Data Preparation](#data-preparation)
     - [Genotype](#genotype)
-    - [Genotypic map](#genotypic-map)
+    - [Genetic map](#genetic-map)
     - [Pedigree](#pedigree)<img src="https://raw.githubusercontent.com/xiaolei-lab/SIMER/master/inst/extdata/00simer_logo/simer_logo.png" height="250" align="right" />
 - [Data Input](#data-input)
     - [Basic](#basic)
@@ -43,50 +43,58 @@
     - [Quick Start for Phenotype Simulation](#quick-start-for-phenotype-simulation)
 - [Genotype Simulation](#genotype-simulation)
     - [Gallery of genotype simulation parameters](#gallery-of-genotype-simulation-parameters)
-    - [Generate an external genotype matrix](#generate-an-external-genotype-matrix)
-    - [Generate a random genotype matrix](#generate-a-random-genotype-matrix)
+    - [Generate an external or species-specific or random genetic map](#generate-an-external-or-species-specific-or-random-genetic-map)
+    - [Generate an external or species-specific or random genotype matrix](#generate-an-external-or-species-specific-or-random-genotype-matrix)
+    - [Generate a genotype matrix with complete linkage disequilibrium](#generate-a-genotype-matrix-with-complete-linkage-disequilibrium)
     - [Add chromosome crossovers and mutations to genotype matrix](#add-chromosome-crossovers-and-mutations-to-genotype-matrix)
 - [Phenotype Simulation](#phenotype-simulation)
     - [Gallery of phenotype simulation parameters](#gallery-of-phenotype-simulation-parameters)
-    - [Generate phenotype by A model](#generate-phenotype-by-A-model)
-    - [Generate phenotype by AD model](#generate-phenotype-by-AD-model)
-    - [Generate phenotype by GxG model](#generate-phenotype-by-GxG-model)
-    - [Generate phenotype by Repeated Record model](#generate-phenotype-by-repeated-record-model)
+    - [Generate phenotype using an external or species-specific or random genotype matrix](#generate-phenotype-using-an-external-or-species-specific-or-random-genotype-matrix)
+    - [Generate continuous phenotype](#generate-continuous-phenotype)
+    - [Generate case-control phenotype](#generate-case-control-phenotype)
+    - [Generate categorical phenotype](#generate-categorical-phenotype)
+    - [Generate phenotype using A model](#generate-phenotype-using-A-model)
+    - [Generate phenotype using AD model](#generate-phenotype-using-AD-model)
+    - [Generate phenotype using GxG model](#generate-phenotype-using-GxG-model)
+    - [Generate phenotype using Repeated Record model](#generate-phenotype-using-repeated-record-model)
     - [Generate phenotype controlled by QTNs subject to Normal distribution](#generate-phenotype-controlled-by-QTNs-subject-to-normal-distribution)
     - [Generate phenotype controlled by QTNs subject to Geometric distribution](#generate-phenotype-controlled-by-QTNs-subject-to-geometric-distribution)
     - [Generate phenotype controlled by QTNs subject to Gamma distribution](#generate-phenotype-controlled-by-QTNs-subject-to-gamma-distribution)
     - [Generate phenotype controlled by QTNs subject to Beta distribution](#generate-phenotype-controlled-by-QTNs-subject-to-beta-distribution)
     - [Generate phenotype with fixed effect and covariate and environmental random effect](#generate-phenotype-with-fixed-effect-and-covariate-and-environmental-random-effect)
-    - [Generate phenotype by GxE model](#generate-phenotype-by-GxE-model)
+    - [Generate phenotype using GxE model](#generate-phenotype-using-GxE-model)
+    - [Generate phenotype using ExE model](#generate-phenotype-using-ExE-model)
     - [Generate phenotype controlled by varied QTN effect distribution](#generate-phenotype-controlled-by-varied-QTN-effect-distribution)
 - [Population Simulation of Multiple-Generation with Genotype and Phenotype](#population-simulation-of-multiple-generation-with-genotype-and-phenotype)
     - [Gallery of population simulation parameters](#gallery-of-population-simulation-parameters)
-    - [Individual selection on single trait](#individual-selection-on-single-trait)
-    - [Family selection on single trait](#family-selection-on-single-trait)
-    - [Within-family selection on single trait](#within-family-selection-on-single-trait)
-    - [Combined selection on single trait](#combined-selection-on-single-trait)
-    - [Tandem selection on multiple traits](#tandem-selection-on-multiple-traits)
-    - [Independent culling selection on multiple traits](#independent-culling-selection-on-multiple-traits)
-    - [Index selection on multiple traits](#index-selection-on-multiple-traits)
-    - [Clone for plant](#clone-for-plant)
-    - [Double haploid for plant](#double-haploid-for-plant)
-    - [Self-pollination for plant and micro-organism](#self-pollination-for-plant-and-micro-organism)
-    - [Random mating for plant and animal](#random-mating-for-plant-and-animal)
-    - [Random mating excluding self-pollination for animal](#random-mating-excluding-self-pollination-for-animal)
-    - [Two way cross for animal](#two-way-cross-for-animal)
-    - [Three way cross for animal](#three-way-cross-for-animal)
-    - [Four way cross for animal](#four-way-cross-for-animal)
-    - [Back cross for animal](#back-cross-for-animal)
-    - [User-designed pedigree mating for plant and animal](#user-designed-pedigree-mating-for-plant-and-animal)
+    - [Individual selection for a single trait](#individual-selection-for-a-single-trait)
+    - [Family selection for a single trait](#family-selection-for-a-single-trait)
+    - [Within-family selection for a single trait](#within-family-selection-for-a-single-trait)
+    - [Combined selection for a single trait](#combined-selection-for-a-single-trait)
+    - [Tandem selection for multiple traits](#tandem-selection-for-multiple-traits)
+    - [Independent culling selection for multiple traits](#independent-culling-selection-for-multiple-traits)
+    - [Index selection for multiple traits](#index-selection-for-multiple-traits)
+    - [Clone for plants](#clone-for-plants)
+    - [Doubled haploid for plants](#doubled-haploid-for-plants)
+    - [Self-pollination for plants and micro-organisms](#self-pollination-for-plants-and-micro-organisms)
+    - [Random mating for plants and animals](#random-mating-for-plants-and-animals)
+    - [Random mating excluding self-pollination for animals](#random-mating-excluding-self-pollination-for-animals)
+    - [Assortative mating for plants and animals](#assortative-mating-for-plants-and-animals)
+    - [Disassortative mating for plants and animals](#disassortative-mating-for-plants-and-animals)
+    - [Two way cross for animals](#two-way-cross-for-animals)
+    - [Three way cross for animals](#three-way-cross-for-animals)
+    - [Four way cross for animals](#four-way-cross-for-animals)
+    - [Back cross for animals](#back-cross-for-animal)
+    - [User-designed pedigree mating for plants and animals](#user-designed-pedigree-mating-for-plants-and-animals)
     - [AN EASY WAY TO GENERATE A POPULATION](#an-easy-way-to-generate-a-population)
 - [Breeding Program Design](#breeding-program-design)
     - [Gallery of breeding program design parameters](#gallery-of-breeding-program-design-parameters)
-    - [Breeding program design preparation](#breeding-program-design-preparation)
-    - [Breeding program design evaluation](#breeding-program-design-evaluation)
+    - [Preparation of a breeding program design](#preparation-of-a-breeding-program-design)
+    - [Evaluation of a breeding program design](#evaluation-of-a-breeding-program-design)
 - [Global Options](#global-options)
     - [Gallery of global parameters](#gallery-of-global-parameters)
     - [Counts of total population size](#counts-of-total-population-size)
-    - [Multi-thread simulation](#multi-thread-simulation)
+    - [Multi-thread computation](#multi-thread-computation)
     - [Multi-population simulation](#multi-population-simulation)
     - [File output](#file-output)
     - [Generation-selective output](#generation-selective-output)
@@ -131,7 +139,7 @@ Typing ```?simer``` could get the details of all parameters.
 ## Genotype
 **[back to top](#contents)**  
 
-***Genotype data*** should be ***Numeric*** format (***m*** rows and ***n*** columns, ***m*** is the number of SNPs, ***n*** is the number of individuals). Other ***genotype data*** such as ***PLINK Binary*** format (details see http://zzz.bwh.harvard.edu/plink/data.shtml#bed), ***VCF*** or ***Hapmap*** can be converted to ***Numeric*** format using ```MVP.Data``` function in the **```rMVP```** (https://github.com/xiaolei-lab/rMVP).
+***Genotype data*** should be ***Numeric*** format (***m*** rows and ***n*** columns, ***m*** is the number of SNPs, ***n*** is the number of individuals). Other ***genotype data***, such as ***PLINK Binary*** format (details see http://zzz.bwh.harvard.edu/plink/data.shtml#bed), ***VCF***, or ***Hapmap*** can be converted to ***Numeric*** format using ```MVP.Data``` function in the **```rMVP```** (https://github.com/xiaolei-lab/rMVP).
 
 > `genotype.txt`
 
@@ -183,9 +191,9 @@ Typing ```?simer``` could get the details of all parameters.
 <td align="center">0</td>
 </tr></tbody></table>
 
-## Genotypic map
+## Genetic map
 **[back to top](#contents)**  
-***Genotypic Map*** is necessary in **```SIMER```**. The first column is ***SNP name***, the second column is ***Chromosome ID***, the third column is ***physical position***, the fourth column is ***REF***, and the fifth column is ***ALT***.  It will be used to generate ***annotation data***, ***genotype data***, and ***phenotype data***. 
+A ***genetic map*** is necessary in **```SIMER```**. The first column is the ***SNP name***, the second column is the ***Chromosome ID***, the third column is ***physical position***, the fourth column is ***REF***, and the fifth column is ***ALT***.  This will be used to generate ***annotation data***, ***genotype data***, and ***phenotype data***. 
 
 > `map.txt`
 
@@ -244,7 +252,7 @@ userped <- read.table("userped.txt", header = TRUE)
 # Quick Start
 **[back to top](#contents)** 
 
-All simulation processes can be divided into 2 steps: ***1) generate simulation parameters***; ***2) run simulation process***.
+All simulation processes can be divided into two steps: ***1) generation of simulation parameters***; ***2) run simulation process***.
 
 ## Quick Start for Population Simulation
 **[back to top](#contents)**
@@ -265,9 +273,13 @@ SP <- simer(SP)
 A quick start for ***Genotype Simulation*** is shown below:
 
 ```r
+# Generate annotation simulation parameters
+SP <- param.annot(species = "pig")
 # Generate genotype simulation parameters
-SP <- param.geno(pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 
+# Run annotation simulation
+SP <- annotation(SP)
 # Run genotype simulation
 SP <- genotype(SP)
 ```
@@ -278,17 +290,12 @@ SP <- genotype(SP)
 A quick start for ***Phenotype Simulation*** is shown below:
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
-SP <- param.annot(pop.map = pop.map, qtn.num = list(tr1 = 10))
+SP <- param.annot(species = "pig")
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 
 # Run annotation simulation
 SP <- annotation(SP)
@@ -303,7 +310,7 @@ SP <- phenotype(SP)
 # Genotype Simulation
 **[back to top](#contents)** 
 
-***Genotype data*** in **```SIMER```** will be generated randomly or external genotype matrix. Chromosome crossovers and base mutations depend on block information and recombination information of ***Annotation data***. 
+***Genotype data*** in **```SIMER```** is generated randomly or through an external genotype matrix. Chromosome crossovers and base mutations depend on block information and recombination information of ***Annotation data***. 
 
 ## Gallery of genotype simulation parameters
 **[back to top](#contents)** 
@@ -372,6 +379,36 @@ SP <- phenotype(SP)
 </thead>
 <tbody>
 <tr>
+<td><b>pop.map</b></td>
+<td>NULL</td>
+<td>data.frame</td>
+<td>the map data with annotation information.</td>
+</tr>
+<tr>
+<td><b>species</b></td>
+<td>NULL</td>
+<td>character</td>
+<td>the species of genetic map, which can be "arabidopsis", "cattle", "chicken", "dog", "horse", "human", "maize", "mice", "pig", and "rice".</td>
+</tr>
+<tr>
+<td><b>pop.marker</b></td>
+<td>1e4</td>
+<td>num</td>
+<td>the number of markers.</td>
+</tr>
+<tr>
+<td><b>num.chr</b></td>
+<td>18</td>
+<td>num</td>
+<td>the number of chromosomes.</td>
+</tr>
+<tr>
+<td><b>len.chr</b></td>
+<td>1.5e8</td>
+<td>num</td>
+<td>the length of chromosomes.</td>
+</tr>
+<tr>
 <td><b>recom.spot</b></td>
 <td>FALSE</td>
 <td>TRUE or FALSE</td>
@@ -392,7 +429,45 @@ SP <- phenotype(SP)
 </tbody>
 </table>
 
-## Generate an external genotype matrix
+
+## Generate an external or species-specific or random genetic map
+**[back to top](#contents)** 
+
+Users can generate a genetic map by inputting an external genetic map.
+
+```r
+# Real genotypic map
+mapPath <- system.file("extdata", "06map", "pig_map.txt", package = "simer")
+pop.map <- read.table(mapPath, header = TRUE)
+
+# Generate annotation simulation parameters
+SP <- param.annot(pop.map = pop.map)
+
+# Run annotation simulation
+SP <- annotation(SP)
+```
+
+Users can also use the inner real genetic map with ```species```, which can be "arabidopsis", "cattle", "chicken", "dog", "horse", "human", "maize", "mice", "pig", and "rice". 
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(species = "pig")
+
+# Run annotation simulation
+SP <- annotation(SP)
+```
+
+Users can generate a random genetic map with ```pop.marker```, ```num.chr```, and ```len.chr```.
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4, num.chr = 18, len.chr = 1.5e8)
+
+# Run annotation simulation
+SP <- annotation(SP)
+```
+
+## Generate an external or species-specific or random genotype matrix
 **[back to top](#contents)** 
 
 Users can use ***real genotype data*** with specific genetic structure for subsequent simulation. 
@@ -401,24 +476,60 @@ Users can use ***real genotype data*** with specific genetic structure for subse
 # Create a genotype matrix
 # pop.geno <- read.table("genotype.txt")
 # pop.geno <- bigmemory::attach.big.matrix("genotype.geno.desc")
-pop.geno <- matrix(0, nrow = 1e4, ncol = 1e2)
+pop.geno <- matrix(c(0, 1, 2, 0), nrow = 1e4, ncol = 1e2, byrow = TRUE)
 
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(pop.geno = pop.geno)
+SP <- param.geno(SP = SP, pop.geno = pop.geno)
 
+# Run annotation simulation
+SP <- annotation(SP)
 # Run genotype simulation
 SP <- genotype(SP)
 ```
 
-## Generate a random genotype matrix
-**[back to top](#contents)** 
+Users can also generate genotype matrix with the inner real genetic map with ```species```, which can be "arabidopsis", "cattle", "chicken", "dog", "horse", "human", "maize", "mice", "pig", and "rice". 
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(species = "pig")
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.ind = 1e2)
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+```
 
 Users can also specify ```pop.marker``` and ```pop.ind``` to generate ***random genotype data***.
 
 ```r
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+```
+
+## Generate a genotype matrix with complete linkage disequilibrium
+**[back to top](#contents)** 
+
+Users can generate a genotype matrix with ***complete linkage disequilibrium*** by ```incols = 2``` and ```cld = TRUE```.
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4)
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.ind = 1e2, incols = 2, cld = TRUE)
+
+# Run annotation simulation
+SP <- annotation(SP)
 # Run genotype simulation
 SP <- genotype(SP)
 ```
@@ -426,15 +537,15 @@ SP <- genotype(SP)
 ## Add chromosome crossovers and mutations to genotype matrix
 **[back to top](#contents)** 
 
-With ***annotation data***, chromosome crossovers and mutations can be added to genotype matrix.  
+With ***annotation data***, chromosome crossovers and mutations can be added to a genotype matrix.  
 
 ```r
 # Generate annotation simulation parameters
 # If recom.spot = TRUE, chromsome crossovers will be added to genotype matrix
-SP <- param.annot(recom.spot = TRUE)
+SP <- param.annot(pop.marker = 1e4, recom.spot = TRUE)
 # Generate genotype simulation parameters
-# Base mutation rate is 1e8
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2, rate.mut = 1e-8)
+# Base mutation rate of QTN and SNP are 1e8
+SP <- param.geno(SP = SP, pop.ind = 1e2, rate.mut = list(qtn = 1e-8, snp = 1e-8))
 
 # Run annotation simulation
 SP <- annotation(SP)
@@ -447,10 +558,10 @@ Note that recombination only exists in meiosis. Therefore, some reproduction met
 ```r
 # Generate annotation simulation parameters
 # If recom.spot = FALSE, chromsome crossovers will not be added to genotype matrix
-SP <- param.annot(recom.spot = FALSE)
+SP <- param.annot(pop.marker = 1e4, recom.spot = FALSE)
 # Generate genotype simulation parameters
-# Base mutation rate is 1e8
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2, rate.mut = 1e-8)
+# Base mutation rate of QTN and SNP are 1e8
+SP <- param.geno(SP = SP, pop.ind = 1e2, rate.mut = list(qtn = 1e-8, snp = 1e-8))
 
 # Run annotation simulation
 SP <- annotation(SP)
@@ -463,13 +574,13 @@ SP <- genotype(SP)
 # Phenotype Simulation
 **[back to top](#contents)**  
 
-***Phenotype data*** in **```SIMER```** will be generated according to different models, including:  
+***Phenotype data*** in **```SIMER```** is generated according to different models, which include:  
 **(1)** Single-Trait Model  
 **(2)** Multiple-Trait Model  
 **(3)** Repeated Record Model  
 **(4)** Genetic Effect Model (***A***dditive effect, ***D***ominant effect, and ***G***enetic-***G***enetic interaction effect)  
 **(5)** Genetic Model with Varied QTN Effect Distributions (QTN effect distribution: ***Norm***al distribution, ***Geom***etric distribution, ***Gamma*** distribution, ***Beta*** distribution, and their combination)  
-**(6)** Linear Mixed Model (***F***ixed effect, ***C***ovariate, ***E***nvironmental ***R***andom effect, ***G***enetic ***R***andom effect, and ***G***enetic-***E***nvironmental interaction effect)  
+**(6)** Linear Mixed Model (***F***ixed effect, ***C***ovariate, ***E***nvironmental ***R***andom effect, ***G***enetic ***R***andom effect, ***G***enetic-***E***nvironmental interaction effect, and ***E***nvironmental-***E***nvironmental interaction effect)  
 
 ## Gallery of phenotype simulation parameters
 **[back to top](#contents)**  
@@ -515,6 +626,12 @@ SP <- genotype(SP)
 <td>NULL</td>
 <td>list</td>
 <td>a list of environmental factors setting.</td>
+</tr>
+<tr>
+<td><b>phe.type</b></td>
+<td>list(tr1 = "continuous")</td>
+<td>list</td>
+<td>a list of phenotype types.</td>
 </tr>
 <tr>
 <td><b>phe.model</b></td>
@@ -634,10 +751,10 @@ SP <- genotype(SP)
 <td>the QTN distribution containing 'norm', 'geom', 'gamma' or 'beta'.</td>
 </tr>
 <tr>
-<td><b>qtn.sd</b></td>
+<td><b>qtn.var</b></td>
 <td>list(tr1 = 1)</td>
 <td>list</td>
-<td>the standard deviations for normal distribution.</td>
+<td>the variances for normal distribution.</td>
 </tr>
 <tr>
 <td><b>qtn.prob</b></td>
@@ -696,27 +813,83 @@ SP <- genotype(SP)
 </tbody>
 </table>
 
-## Generate phenotype by A model
+## Generate phenotype using an external or species-specific or random genotype matrix
 **[back to top](#contents)** 
 
-In ***A*** model, **```SIMER```** only considers ***A***dditive effect as genetic effect. Users should prepare ***A***dditive ***QTN*** effect in the ***Annotation data*** for generating ***A***dditive ***I***ndividual effect. ***A***dditive single-trait simulation is displayed as follows:   
+Users can use ***real genotype data*** with specific genetic structure to generate phenotype. 
+
+```r
+# Create a genotype matrix
+# pop.geno <- read.table("genotype.txt")
+# pop.geno <- bigmemory::attach.big.matrix("genotype.geno.desc")
+pop.geno <- matrix(c(0, 1, 2, 0), nrow = 1e4, ncol = 1e2, byrow = TRUE)
+
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4)
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.geno = pop.geno)
+# Generate phenotype simulation parameters
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+# Run phenotype simulation
+SP <- phenotype(SP)
+```
+
+Users can also generate phenotype using species-specific genotype matrix.
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(species = "pig")
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.ind = 1e2)
+# Generate phenotype simulation parameters
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+# Run phenotype simulation
+SP <- phenotype(SP)
+```
+
+Users can also generate phenotype using random genotype.
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4)
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.ind = 1e2)
+# Generate phenotype simulation parameters
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+# Run phenotype simulation
+SP <- phenotype(SP)
+```
+
+## Generate continuous phenotype
+**[back to top](#contents)** 
+
+**```SIMER```** generates continuous phenotypes by default. Continuous phenotype simulation is displayed as follows:   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
-SP <- param.annot(pop.map = pop.map, qtn.num = list(tr1 = 10), qtn.model = "A") # Additive effect
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10), qtn.model = "A") # Additive effect
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
+  phe.type = list(tr1 = "continuous"),
   phe.model = list(tr1 = "T1 = A + E"), # "T1" (Trait 1) consists of Additive effect and Residual effect
   # phe.var = list(tr1 = 100),
   phe.h2A = list(tr1 = 0.3)
@@ -730,25 +903,18 @@ SP <- genotype(SP)
 SP <- phenotype(SP)
 ```
 
-In the multiple-trait simulation, **```SIMER```** can build ***accurate Additive genetic correlation*** between multiple traits. ***A***dditive multiple-trait simulation is displayed as follows:   
+Multiple-trait simulation of continuous phenotype is displayed as follows:   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
-SP <- param.annot(pop.map = pop.map, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A") # Additive effect
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A") # Additive effect
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
-
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
+  phe.type = list(tr1 = "continuous", tr2 = "continuous"),
   phe.model = list(
     tr1 = "T1 = A + E", # "T1" (Trait 1) consists of Additive effect and Residual effect
     tr2 = "T2 = A + E"  # "T2" (Trait 2) consists of Additive effect and Residual effect
@@ -766,27 +932,195 @@ SP <- genotype(SP)
 SP <- phenotype(SP)
 ```
 
-## Generate phenotype by AD model
+## Generate case-control phenotype
 **[back to top](#contents)** 
 
-In ***AD*** model, **```SIMER```** considers ***A***dditive effect and ***D***ominant effect as genetic effect. Users should prepare ***A***dditive ***QTN*** effect and ***D***ominant ***QTN*** effect in the ***Annotation data*** for generating ***A***dditive ***I***ndividual effect and ***D***ominant ***I***ndividual effect. ***A***dditive and ***D***ominant single-trait simulation is displayed as follows:   
+**```SIMER```** generates case-control phenotypes by ```phe.type```. ```phe.type``` consists of the variable names and their percentages. Case-control phenotype simulation is displayed as follows:   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
-SP <- param.annot(pop.map = pop.map, qtn.num = list(tr1 = 10), qtn.model = "A + D") # Additive effect and Dominant effect
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10), qtn.model = "A") # Additive effect
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
+  phe.type = list(tr1 = list(case = 0.01, control = 0.99)), # "T1" (Trait 1) consists of 1% case and 99% control
+  phe.model = list(tr1 = "T1 = A + E"), # "T1" (Trait 1) consists of Additive effect and Residual effect
+  # phe.var = list(tr1 = 100),
+  phe.h2A = list(tr1 = 0.3)
+)
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+# Run phenotype simulation
+SP <- phenotype(SP)
+```
+
+Multiple-trait simulation of case-control phenotype is displayed as follows:   
+If users want to output files, please see **[File output](#file-output)**.  
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A") # Additive effect
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
+# Generate phenotype simulation parameters
+SP <- param.pheno(
+  SP = SP,
+  phe.type = list(
+    tr1 = list(case = 0.01, control = 0.99), # "T1" (Trait 1) consists of 1% case and 99% control
+    tr2 = list(case = 0.01, control = 0.99)  # "T2" (Trait 2) consists of 1% case and 99% control
+   ),
+  phe.model = list(
+    tr1 = "T1 = A + E", # "T1" (Trait 1) consists of Additive effect and Residual effect
+    tr2 = "T2 = A + E"  # "T2" (Trait 2) consists of Additive effect and Residual effect
+  ),
+  # phe.var = list(tr1 = 100, tr2 = 100),
+  phe.h2A = list(tr1 = 0.3, tr2 = 0.3),
+  phe.corA = matrix(c(1, 0.5, 0.5, 1), 2, 2) # Additive genetic correlation
+)
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+# Run phenotype simulation
+SP <- phenotype(SP)
+```
+
+## Generate categorical phenotype
+**[back to top](#contents)** 
+
+**```SIMER```** generates categorical phenotypes by ```phe.type```. ```phe.type``` consists of the variable names and their percentages. Categorical phenotype simulation is displayed as follows:   
+If users want to output files, please see **[File output](#file-output)**.  
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10), qtn.model = "A") # Additive effect
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
+# Generate phenotype simulation parameters
+SP <- param.pheno(
+  SP = SP,
+  phe.type = list(tr1 = list(low = 0.3, medium = 0.4, high = 0.3)), # "T1" (Trait 1) consists of 30% low, 40% medium, and 30% high
+  phe.model = list(tr1 = "T1 = A + E"), # "T1" (Trait 1) consists of Additive effect and Residual effect
+  # phe.var = list(tr1 = 100),
+  phe.h2A = list(tr1 = 0.3)
+)
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+# Run phenotype simulation
+SP <- phenotype(SP)
+```
+
+Multiple-trait simulation of categorical phenotype is displayed as follows:   
+If users want to output files, please see **[File output](#file-output)**.  
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A") # Additive effect
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
+# Generate phenotype simulation parameters
+SP <- param.pheno(
+  SP = SP,
+  phe.type = list(
+    tr1 = list(low = 0.3, medium = 0.4, high = 0.3), # "T1" (Trait 1) consists of 30% low, 40% medium, and 30% high
+    tr2 = list(low = 0.3, medium = 0.4, high = 0.3)  # "T2" (Trait 2) consists of 30% low, 40% medium, and 30% high
+   ),
+  phe.model = list(
+    tr1 = "T1 = A + E", # "T1" (Trait 1) consists of Additive effect and Residual effect
+    tr2 = "T2 = A + E"  # "T2" (Trait 2) consists of Additive effect and Residual effect
+  ),
+  # phe.var = list(tr1 = 100, tr2 = 100),
+  phe.h2A = list(tr1 = 0.3, tr2 = 0.3),
+  phe.corA = matrix(c(1, 0.5, 0.5, 1), 2, 2) # Additive genetic correlation
+)
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+# Run phenotype simulation
+SP <- phenotype(SP)
+```
+
+## Generate phenotype using A model
+**[back to top](#contents)** 
+
+In an "***A***" model, **```SIMER```** only considers an ***A***dditive effect as a genetic effect. Users should prepare ***A***dditive ***QTN*** effect in the ***Annotation data*** to generate an ***A***dditive ***I***ndividual effect. An ***A***dditive single-trait simulation is displayed as follows:   
+If users want to output files, please see **[File output](#file-output)**.  
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10), qtn.model = "A") # Additive effect
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
+# Generate phenotype simulation parameters
+SP <- param.pheno(
+  SP = SP,
+  phe.model = list(tr1 = "T1 = A + E"), # "T1" (Trait 1) consists of Additive effect and Residual effect
+  # phe.var = list(tr1 = 100),
+  phe.h2A = list(tr1 = 0.3)
+)
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+# Run phenotype simulation
+SP <- phenotype(SP)
+```
+
+In the multiple-trait simulation, **```SIMER```** builds ***accurate Additive genetic correlation*** among multiple traits. An ***A***dditive multiple-trait simulation is displayed as follows:   
+If users want to output files, please see **[File output](#file-output)**.  
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A") # Additive effect
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
+# Generate phenotype simulation parameters
+SP <- param.pheno(
+  SP = SP,
+  phe.model = list(
+    tr1 = "T1 = A + E", # "T1" (Trait 1) consists of Additive effect and Residual effect
+    tr2 = "T2 = A + E"  # "T2" (Trait 2) consists of Additive effect and Residual effect
+  ),
+  # phe.var = list(tr1 = 100, tr2 = 100),
+  phe.h2A = list(tr1 = 0.3, tr2 = 0.3),
+  phe.corA = matrix(c(1, 0.5, 0.5, 1), 2, 2) # Additive genetic correlation
+)
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+# Run phenotype simulation
+SP <- phenotype(SP)
+```
+
+## Generate phenotype using AD model
+**[back to top](#contents)** 
+
+In an "***AD***" model, **```SIMER```** considers ***A***dditive effect and ***D***ominant effect as genetic effect. Users should prepare ***A***dditive ***QTN*** effect and ***D***ominant ***QTN*** effect in the ***Annotation data*** to generate an ***A***dditive ***I***ndividual effect and ***D***ominant ***I***ndividual effect. ***A***dditive and ***D***ominant single-trait simulation is displayed as follows:   
+If users want to output files, please see **[File output](#file-output)**.  
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10), qtn.model = "A + D") # Additive effect and Dominant effect
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
+# Generate phenotype simulation parameters
+SP <- param.pheno(
+  SP = SP,
   phe.model = list(tr1 = "T1 = A + D + E"), # "T1" (Trait 1) consists of Additive effect, Dominant effect, and Residual effect
   # phe.var = list(tr1 = 100),
   phe.h2A = list(tr1 = 0.3),
@@ -801,24 +1135,17 @@ SP <- genotype(SP)
 SP <- phenotype(SP)
 ```
 
-In multiple-trait simulation, **```SIMER```** can build ***accurate Additive genetic correlation*** and ***accurate Dominant genetic correlation*** between multiple traits. ***A***dditive and ***D***ominant multiple-trait simulation is displayed as follows:   
+In multiple-trait simulation, **```SIMER```** builds ***accurate Additive genetic correlation*** and ***accurate Dominant genetic correlation*** among multiple traits. An ***A***dditive and ***D***ominant multiple-trait simulation is displayed as follows:   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
-SP <- param.annot(pop.map = pop.map, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A + D") # Additive effect and Dominant effect
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A + D") # Additive effect and Dominant effect
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   phe.model = list(
     tr1 = "T1 = A + D + E", # "T1" (Trait 1) consists of Additive effect, Dominant effect, and Residual effect
     tr2 = "T2 = A + D + E"  # "T2" (Trait 2) consists of Additive effect, Dominant effect, and Residual effect
@@ -838,27 +1165,20 @@ SP <- genotype(SP)
 SP <- phenotype(SP)
 ```
 
-## Generate phenotype by GxG model
+## Generate phenotype using GxG model
 **[back to top](#contents)** 
 
-In ***GxG*** model, **```SIMER```** considers ***G***enetic-***G***enetic effect as genetic effect. Users should prepare ***G***enetic-***G***enetic ***QTN*** effect in the ***Annotation data*** for generating ***G***enetic-***G***enetic ***I***ndividual effect. An example of ***A***dditive-***D***ominant interaction in single-trait simulation is displayed as follows:   
+In a "***GxG***" model, **```SIMER```** considers ***G***enetic-***G***enetic effect as a genetic effect. Users should prepare ***G***enetic-***G***enetic ***QTN*** effect in the ***Annotation data*** to generate ***G***enetic-***G***enetic ***I***ndividual effect. An example of ***A***dditive-***D***ominant interaction in single-trait simulation is displayed as follows:   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
-SP <- param.annot(pop.map = pop.map, qtn.num = list(tr1 = 10), qtn.model = "A + D + A:D") # Additive effect, Dominant effect, and Additive-Dominant interaction effect
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10), qtn.model = "A + D + A:D") # Additive effect, Dominant effect, and Additive-Dominant interaction effect
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   phe.model = list(tr1 = "T1 = A + D + A:D + E"), # "T1" (Trait 1) consists of Additive effect, Dominant effect, Additive-Dominant interaction effect, and Residual effect
   # phe.var = list(tr1 = 100),
   phe.h2A = list(tr1 = 0.3),
@@ -874,24 +1194,17 @@ SP <- genotype(SP)
 SP <- phenotype(SP)
 ```
 
-In the multiple-trait simulation, **```SIMER```** can build ***accurate Genetic-Genetic interaction correlation*** between multiple traits. An example of ***A***dditive-***D***ominant interaction in multiple-trait simulation is displayed as follows:   
+In the multiple-trait simulation, **```SIMER```** builds ***accurate Genetic-Genetic interaction correlation*** among multiple traits. An example of ***A***dditive-***D***ominant interaction in multiple-trait simulation is displayed as follows:   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
-SP <- param.annot(pop.map = pop.map, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A + D + A:D") # Additive effect, Dominant effect, and Additive-Dominant interaction effect
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A + D + A:D") # Additive effect, Dominant effect, and Additive-Dominant interaction effect
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   phe.model = list(
     tr1 = "T1 = A + D + A:D + E", # "T1" (Trait 1) consists of Additive effect, Dominant effect, Additive-Dominant interaction effect, and Residual effect
     tr2 = "T2 = A + D + A:D + E"  # "T2" (Trait 2) consists of Additive effect, Dominant effect, Additive-Dominant interaction effect, and Residual effect
@@ -913,27 +1226,20 @@ SP <- genotype(SP)
 SP <- phenotype(SP)
 ```
 
-## Generate phenotype by Repeated Record model
+## Generate phenotype using Repeated Record model
 **[back to top](#contents)** 
 
-In ***Repeated Record*** model, **```SIMER```** adds ***PE*** (***P***ermanent ***E***nvironmental) effect to the phenotype. The number of repeated records can be set by ```pop.rep```. In the meantime, ```pop.rep.bal``` can be used to determine whether repeated records are balanced. ***Repeated Record*** in single-trait simulation is displayed as follows:   
+In the ***Repeated Record*** model, **```SIMER```** adds a ***PE*** (***P***ermanent ***E***nvironmental) effect to the phenotype. The number of repeated records can be set by ```pop.rep```. In the meantime, ```pop.rep.bal``` can be used to determine whether repeated records are balanced. The ***Repeated Record*** in a single-trait simulation is displayed as follows:   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
-SP <- param.annot(pop.map = pop.map, qtn.num = list(tr1 = 10), qtn.model = "A") # Additive effect
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10), qtn.model = "A") # Additive effect
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   pop.rep = 2,                          # The number of repeated records is 2
   pop.rep.bal = TRUE,                   # Repeated records are balanced
   phe.model = list(tr1 = "T1 = A + E"), # "T1" (Trait 1) consists of Additive effect and Residual effect
@@ -949,24 +1255,17 @@ SP <- genotype(SP)
 SP <- phenotype(SP)
 ```
 
-In the multiple-trait simulation, **```SIMER```** can build ***accurate Permanent Environmental correlation*** between multiple traits. ***Repeated Record*** in multiple-trait simulation is displayed as follows:   
+In the multiple-trait simulation, **```SIMER```** builds ***accurate Permanent Environmental correlation*** among multiple traits. ***Repeated Record*** in multiple-trait simulation is displayed as follows:   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
-SP <- param.annot(pop.map = pop.map, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A") # Additive effect
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A") # Additive effect
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   pop.rep = 2,          # The number of repeated records is 2
   pop.rep.bal = TRUE,   # Repeated records are balanced
   phe.model = list(
@@ -994,26 +1293,19 @@ SP <- phenotype(SP)
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
 SP <- param.annot(
-  pop.map = pop.map,
+  pop.marker = 1e4,
   qtn.num = list(tr1 = 10),
   qtn.model = "A",
   qtn.dist = list(tr1 = "norm"),
-  qtn.sd = list(tr1 = 1)
+  qtn.var = list(tr1 = 1)
 )
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   phe.model = list(tr1 = "T1 = A + E"), # "T1" (Trait 1) consists of Additive effect and Residual effect
   # phe.var = list(tr1 = 100),
   phe.h2A = list(tr1 = 0.3)
@@ -1031,26 +1323,19 @@ Phenotype controlled by QTNs subject to ***Norm***al distribution in multiple-tr
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
 SP <- param.annot(
-  pop.map = pop.map,
+  pop.marker = 1e4,
   qtn.num = list(tr1 = 10, tr2 = 10),
   qtn.model = "A",
   qtn.dist = list(tr1 = "norm", tr2 = "norm"),
-  qtn.sd = list(tr1 = 1, tr2 = 1)
+  qtn.var = list(tr1 = 1, tr2 = 1)
 )
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   phe.model = list(
     tr1 = "T1 = A + E", # "T1" (Trait 1) consists of Additive effect and Residual effect
     tr2 = "T2 = A + E"  # "T2" (Trait 2) consists of Additive effect and Residual effect
@@ -1075,26 +1360,19 @@ SP <- phenotype(SP)
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
 SP <- param.annot(
-  pop.map = pop.map,
+  pop.marker = 1e4,
   qtn.num = list(tr1 = 10),
   qtn.model = "A",
   qtn.dist = list(tr1 = "geom"),
   qtn.prob = list(tr1 = 0.5)
 )
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   phe.model = list(tr1 = "T1 = A + E"), # "T1" (Trait 1) consists of Additive effect and Residual effect
   # phe.var = list(tr1 = 100),
   phe.h2A = list(tr1 = 0.3)
@@ -1112,26 +1390,19 @@ Phenotype controlled by QTNs subject to ***Geom***etric distribution in multiple
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
 SP <- param.annot(
-  pop.map = pop.map,
+  pop.marker = 1e4,
   qtn.num = list(tr1 = 10, tr2 = 10),
   qtn.model = "A",
   qtn.dist = list(tr1 = "geom", tr2 = "geom"),
   qtn.prob = list(tr1 = 0.5, tr2 = 0.5)
 )
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   phe.model = list(
     tr1 = "T1 = A + E", # "T1" (Trait 1) consists of Additive effect and Residual effect
     tr2 = "T2 = A + E"  # "T2" (Trait 2) consists of Additive effect and Residual effect
@@ -1156,14 +1427,9 @@ SP <- phenotype(SP)
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
 SP <- param.annot(
-  pop.map = pop.map,
+  pop.marker = 1e4,
   qtn.num = list(tr1 = 10),
   qtn.model = "A",
   qtn.dist = list(tr1 = "gamma"),
@@ -1171,12 +1437,10 @@ SP <- param.annot(
   qtn.scale = list(tr1 = 1)
 )
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   phe.model = list(tr1 = "T1 = A + E"), # "T1" (Trait 1) consists of Additive effect and Residual effect
   # phe.var = list(tr1 = 100),
   phe.h2A = list(tr1 = 0.3)
@@ -1194,14 +1458,9 @@ Phenotype controlled by QTNs subject to ***Gamma*** distribution in multiple-tra
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
 SP <- param.annot(
-  pop.map = pop.map,
+  pop.marker = 1e4,
   qtn.num = list(tr1 = 10, tr2 = 10),
   qtn.model = "A",
   qtn.dist = list(tr1 = "gamma", tr2 = "gamma"),
@@ -1209,12 +1468,10 @@ SP <- param.annot(
   qtn.scale = list(tr1 = 1, tr2 = 1)
 )
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   phe.model = list(
     tr1 = "T1 = A + E", # "T1" (Trait 1) consists of Additive effect and Residual effect
     tr2 = "T2 = A + E"  # "T2" (Trait 2) consists of Additive effect and Residual effect
@@ -1239,14 +1496,9 @@ SP <- phenotype(SP)
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
 SP <- param.annot(
-  pop.map = pop.map,
+  pop.marker = 1e4,
   qtn.num = list(tr1 = 10),
   qtn.model = "A",
   qtn.dist = list(tr1 = "beta"),
@@ -1255,12 +1507,10 @@ SP <- param.annot(
   qtn.ncp = list(tr1 = 0)
 )
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   phe.model = list(tr1 = "T1 = A + E"), # "T1" (Trait 1) consists of Additive effect and Residual effect
   # phe.var = list(tr1 = 100),
   phe.h2A = list(tr1 = 0.3)
@@ -1278,14 +1528,9 @@ Phenotype controlled by QTNs subject to ***Beta*** distribution in multiple-trai
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
 SP <- param.annot(
-  pop.map = pop.map,
+  pop.marker = 1e4,
   qtn.num = list(tr1 = 10, tr2 = 10),
   qtn.model = "A",
   qtn.dist = list(tr1 = "beta", tr2 = "beta"),
@@ -1294,12 +1539,10 @@ SP <- param.annot(
   qtn.ncp = list(tr1 = 0, tr2 = 0)
 )
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   phe.model = list(
     tr1 = "T1 = A + E", # "T1" (Trait 1) consists of Additive effect and Residual effect
     tr2 = "T2 = A + E"  # "T2" (Trait 2) consists of Additive effect and Residual effect
@@ -1320,15 +1563,10 @@ SP <- phenotype(SP)
 ## Generate phenotype with fixed effect and covariate and environmental random effect
 **[back to top](#contents)** 
 
-**```SIMER```** supports adding ***F***ixed effects, ***C***ovariates, and ***E***nvironmental ***R***andom effects to phenotype. Users should prepare a list of environmental factors setting. ***F***ixed effects, ***C***ovariates , and ***E***nvironmental ***R***andom effects are determined by ```effect```, ```slope```, and ```ratio``` respectively. Phenotype with ***F***ixed effect, ***C***ovariate, and ***E***nvironmental ***R***andom effect in single-trait simulation is displayed as follows:   
+**```SIMER```** supports adding ***F***ixed effects, ***C***ovariates, and ***E***nvironmental ***R***andom effects to a phenotype. Users should prepare a list of environmental factors setting. ***F***ixed effects, ***C***ovariates , and ***E***nvironmental ***R***andom effects are determined by ```effect```, ```slope```, and ```ratio``` respectively. A phenotype with ***F***ixed effect, ***C***ovariate, and ***E***nvironmental ***R***andom effect in single-trait simulation is displayed as follows:   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Prepare environmental factor list
 pop.env <- list(
   F1 = list( # fixed effect 1
@@ -1350,14 +1588,12 @@ pop.env <- list(
 )
 
 # Generate genotype simulation parameters
-SP <- param.annot(pop.map = pop.map, qtn.num = list(tr1 = 10), qtn.model = "A")
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10), qtn.model = "A")
 # Generate annotation simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP, 
-  pop.ind = 100,
   pop.env = pop.env,
   phe.model = list(tr1 = "T1 = A + F1 + F2 + C1 + R1 + E"), # "T1" (Trait 1) consists of Additive effect, F1, F2, C1, R1, and Residual effect
   # phe.var = list(tr1 = 100),
@@ -1372,15 +1608,10 @@ SP <- genotype(SP)
 SP <- phenotype(SP)
 ```
 
-Phenotype with ***F***ixed effect, ***C***ovariate, and ***E***nvironmental ***R***andom effect in multiple-trait simulation is displayed as follows:   
+A phenotype with ***F***ixed effect, ***C***ovariate, and ***E***nvironmental ***R***andom effect in multiple-trait simulation is displayed as follows:   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Prepare environmental factor list
 pop.env <- list(
   F1 = list( # fixed effect 1
@@ -1402,14 +1633,12 @@ pop.env <- list(
 )
 
 # Generate genotype simulation parameters
-SP <- param.annot(pop.map = pop.map, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A")
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A")
 # Generate annotation simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP, 
-  pop.ind = 100,
   pop.env = pop.env,
   phe.model = list(
     tr1 = "T1 = A + F1 + F2 + C1 + R1 + E", # "T1" (Trait 1) consists of Additive effect, F1, F2, C1, R1, and Residual effect
@@ -1428,18 +1657,13 @@ SP <- genotype(SP)
 SP <- phenotype(SP)
 ```
 
-## Generate phenotype by GxE model
+## Generate phenotype using GxE model
 **[back to top](#contents)** 
 
-In ***GxE*** model, **```SIMER```** adds ***G***enetic-***E***nvironmental interaction effect to phenotype. Users should prepare ***G***enetic ***QTN*** effect in the ***Annotation data*** and environmental factor by ```pop.env``` for generating ***G***enetic-***E***nvironmental ***I***ndividual effect. An example of ***G***enetic-***E***nvironmental interaction in single-trait simulation is displayed as follows:   
+In a "***GxE***" model, **```SIMER```** adds a ***G***enetic-***E***nvironmental interaction effect to the phenotype. Users should prepare the ***G***enetic ***QTN*** effect in the ***Annotation data*** and environmental factor by ```pop.env``` to generate a ***G***enetic-***E***nvironmental ***I***ndividual effect. An example of a ***G***enetic-***E***nvironmental interaction in a single-trait simulation is displayed as follows:   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Prepare environmental factor list
 pop.env <- list(
   F1 = list( # fixed effect 1
@@ -1461,14 +1685,12 @@ pop.env <- list(
 )
 
 # Generate annotation simulation parameters
-SP <- param.annot(pop.map = pop.map, qtn.num = list(tr1 = 10), qtn.model = "A") # Additive effect
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10), qtn.model = "A") # Additive effect
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   pop.env = pop.env,
   phe.model = list(
     tr1 = "T1 = A + F1 + F2 + C1 + R1 + A:F1 + E" # "T1" (Trait 1) consists of Additive effect, F1, F2, C1, R1, Additive-F1 interaction effect, and Residual effect
@@ -1490,11 +1712,6 @@ An example of ***G***enetic-***E***nvironmental interaction in multiple-trait si
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Prepare environmental factor list
 pop.env <- list(
   F1 = list( # fixed effect 1
@@ -1516,14 +1733,12 @@ pop.env <- list(
 )
 
 # Generate annotation simulation parameters
-SP <- param.annot(pop.map = pop.map, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A") # Additive effect
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A") # Additive effect
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   pop.env = pop.env,
   phe.model = list(
     tr1 = "T1 = A + F1 + F2 + C1 + R1 + A:F1 + E", # "T1" (Trait 1) consists of Additive effect, F1, F2, C1, R1, Additive-F1 interaction effect, and Residual effect
@@ -1531,6 +1746,109 @@ SP <- param.pheno(
   ),
   # phe.var = list(tr1 = 100, tr2 = 100),
   phe.h2A = list(tr1 = 0.3, tr2 = 0.3),
+  phe.h2GxE = list(tr1 = list("A:F1" = 0.1), tr2 = list("A:F1" = 0.1)),
+  phe.corA = matrix(c(1, 0.5, 0.5, 1), 2, 2) # Additive genetic correlation
+)
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+# Run phenotype simulation
+SP <- phenotype(SP)
+```
+
+## Generate phenotype using ExE model
+**[back to top](#contents)** 
+
+In an "***ExE***" model, **```SIMER```** adds ***E***nvironmental-***E***nvironmental interaction effect to phenotype. Users should prepare environmental factor by ```pop.env``` for generating ***E***nvironmental-***E***nvironmental ***I***ndividual effect. An example of ***E***nvironmental-***E***nvironmental interaction in single-trait simulation is displayed as follows:   
+If users want to output files, please see **[File output](#file-output)**.  
+
+```r
+# Prepare environmental factor list
+pop.env <- list(
+  F1 = list( # fixed effect 1
+    level = c("1", "2"),
+    effect = list(tr1 = c(50, 30))
+  ), 
+  F2 = list( # fixed effect 2
+    level = c("d1", "d2", "d3"),
+    effect = list(tr1 = c(10, 20, 30))
+  ),
+  C1 = list( # covariate 1
+    level = c(70, 80, 90),
+    slope = list(tr1 = 1.5)
+  ),
+  R1 = list( # random effect 1
+    level = c("l1", "l2", "l3"),
+    ratio = list(tr1 = 0.1)
+  )
+)
+
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10), qtn.model = "A") # Additive effect
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
+# Generate phenotype simulation parameters
+SP <- param.pheno(
+  SP = SP,
+  pop.env = pop.env,
+  phe.model = list(
+    tr1 = "T1 = A + F1 + F2 + C1 + R1 + F1:R1 + E" # "T1" (Trait 1) consists of Additive effect, F1, F2, C1, R1, F1-R1 interaction effect, and Residual effect
+  ),
+  # phe.var = list(tr1 = 100),
+  phe.h2A = list(tr1 = 0.3),
+  phe.h2GxE = list(tr1 = list("F1:R1" = 0.1))
+)
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+# Run phenotype simulation
+SP <- phenotype(SP)
+```
+
+An example of ***E***nvironmental-***E***nvironmental interaction in multiple-trait simulation is displayed as follows:   
+If users want to output files, please see **[File output](#file-output)**.  
+
+```r
+# Prepare environmental factor list
+pop.env <- list(
+  F1 = list( # fixed effect 1
+    level = c("1", "2"),
+    effect = list(tr1 = c(50, 30), tr2 = c(50, 30))
+  ), 
+  F2 = list( # fixed effect 2
+    level = c("d1", "d2", "d3"),
+    effect = list(tr1 = c(10, 20, 30), tr2 = c(10, 20, 30))
+  ),
+  C1 = list( # covariate 1
+    level = c(70, 80, 90),
+    slope = list(tr1 = 1.5, tr2 = 1.5)
+  ),
+  R1 = list( # random effect 1
+    level = c("l1", "l2", "l3"),
+    ratio = list(tr1 = 0.1, tr2 = 0.1)
+  )
+)
+
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A") # Additive effect
+# Generate genotype simulation parameters
+# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
+# Generate phenotype simulation parameters
+SP <- param.pheno(
+  SP = SP,
+  pop.env = pop.env,
+  phe.model = list(
+    tr1 = "T1 = A + F1 + F2 + C1 + R1 + F1:R1 + E", # "T1" (Trait 1) consists of Additive effect, F1, F2, C1, R1, F1:R1 interaction effect, and Residual effect
+    tr2 = "T2 = A + F1 + F2 + C1 + R1 + F1:R1 + E"  # "T2" (Trait 2) consists of Additive effect, F1, F2, C1, R1, F1:R1 interaction effect, and Residual effect
+  ),
+  # phe.var = list(tr1 = 100, tr2 = 100),
+  phe.h2A = list(tr1 = 0.3, tr2 = 0.3),
+  phe.h2GxE = list(tr1 = list("F1:R1" = 0.1), tr2 = list("F1:R1" = 0.1)),
   phe.corA = matrix(c(1, 0.5, 0.5, 1), 2, 2) # Additive genetic correlation
 )
 
@@ -1549,25 +1867,19 @@ In the single-trait simulation, the trait can be controlled by ***varied QTN eff
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
-# Real genotypic map
-# pop.map <- read.table("Real_Genotypic_map.txt", header = TRUE)
-# Simulated genotypic map
-pop.map <- generate.map(pop.marker = 1e4)
-
 # Generate annotation simulation parameters
 SP <- param.annot(
-  pop.map = pop.map, 
+  pop.marker = 1e4, 
   qtn.num = list(tr1 = c(2, 8)), # Group1: 2 QTNs; Group 2: 8 QTNs
   qtn.dist = list(tr1 = c("norm", "norm")),
+  qtn.var = list(tr1 = c(1, 1)), # Group1: genetic variance of QTNs = 1; Group2: genetic variance of QTNs = 1
   qtn.model = "A"
 )
 # Generate genotype simulation parameters
-# SP <- param.geno(SP = SP, pop.geno = pop.geno)           # external genotype
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2) # random genotype
+SP <- param.geno(SP = SP, pop.ind = 1e2) # random genotype
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP,
-  pop.ind = 100,
   phe.model = list(tr1 = "T1 = A + E"), # "T1" (Trait 1) consists of Additive effect and Residual effect
   # phe.var = list(tr1 = 100),
   phe.h2A = list(tr1 = 0.3)
@@ -1586,7 +1898,7 @@ SP <- phenotype(SP)
 # Population Simulation of Multiple-Generation with Genotype and Phenotype
 **[back to top](#contents)**  
 
-**```SIMER```** imitates the reproductive process of organisms to generate ***Multiple-Generation*** population. The ***genotype data*** and ***phenotype data*** of the population are screened by ***single-trait selection*** or ***multiple-trait selection***, and then amplified by ***species-specific reproduction***.
+**```SIMER```** imitates the reproductive process of organisms to generate a ***Multiple-Generation*** population. The ***genotype data*** and ***phenotype data*** of the population are screened by ***single-trait selection*** or ***multiple-trait selection***, and then those data are amplified by ***species-specific reproduction***.
 
 ## Gallery of population simulation parameters
 **[back to top](#contents)**  
@@ -1688,7 +2000,7 @@ SP <- phenotype(SP)
 <td><b>reprod.way</b></td>
 <td>'randmate'</td>
 <td>character</td>
-<td>reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.</td>
+<td>reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.</td>
 </tr>
 <tr>
 <td><b>sex.rate</b></td>
@@ -1705,19 +2017,19 @@ SP <- phenotype(SP)
 </tbody>
 </table>
 
-## Individual selection on single trait
+## Individual selection for a single trait
 **[back to top](#contents)**  
 
-***Individual selection*** is a selecting method according to the ***phenotype*** of individual traits, also known as mixed selection or collective selection. This selection method is simple and easy to be used for traits with ***high heritability***.  
+***Individual selection*** is a selection method based on the ***phenotype*** of individual traits, which is also known as mixed selection or collective selection. This selection method is simple and easy to use for traits with ***high heritability***.  
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate selection parameters
 SP <- param.sel(SP = SP, sel.single = "ind")
 
@@ -1731,7 +2043,7 @@ SP <- phenotype(SP)
 SP <- selects(SP)
 ```
 
-## Family selection on single trait
+## Family selection for a single trait
 **[back to top](#contents)** 
 
 ***Family selection*** is a selection method by family based on the ***average of the family***. This selection method is used for traits with ***low heritability***.  
@@ -1739,11 +2051,11 @@ If users want to output files, please see **[File output](#file-output)**.
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate selection parameters
 SP <- param.sel(SP = SP, sel.single = "fam")
 
@@ -1757,19 +2069,19 @@ SP <- phenotype(SP)
 SP <- selects(SP)
 ```
 
-## Within-family selection on single trait
+## Within-family selection for a single trait
 **[back to top](#contents)** 
 
-***Within-family*** selection is a selection method according to the ***deviation of individual phenotype and family mean value in each family***. This selection method is used for traits with ***low heritability and small family***.  
+***Within-family*** selection is a selection method based on the ***deviation of individual phenotype and family mean value in each family***. This selection method is used for traits with ***low heritability and small families***.  
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate selection parameters
 SP <- param.sel(SP = SP, sel.single = "infam")
 
@@ -1783,19 +2095,19 @@ SP <- phenotype(SP)
 SP <- selects(SP)
 ```
 
-## Combined selection on single trait
+## Combined selection for a single trait
 **[back to top](#contents)**  
 
-***Combined selection*** is a selecting method according to ***weighed combination of the deviation of individual phenotype and family mean value***.  
+***Combined selection*** is a selection method based on ***weighed combination of the deviation of individual phenotype and family mean value***.  
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate selection parameters
 SP <- param.sel(SP = SP, sel.single = "comb")
 
@@ -1809,7 +2121,7 @@ SP <- phenotype(SP)
 SP <- selects(SP)
 ```
 
-## Tandem selection on multiple traits
+## Tandem selection for multiple traits
 **[back to top](#contents)**  
 
 ***Tandem selection*** is a method for ***sequentially selecting a plurality of target traits one by one***. The index of the selected trait is ```index.tdm``` and this parameter should ***not be controlled by Users***.  
@@ -1817,13 +2129,12 @@ If users want to output files, please see **[File output](#file-output)**.
 
 ```r
 # Generate genotype simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A")
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10, tr2 = 10))
 # Generate annotation simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP, 
-  pop.ind = 100,
   # phe.var = list(tr1 = 100, tr2 = 100),
   phe.model = list(
     tr1 = "T1 = A + E",
@@ -1843,21 +2154,20 @@ SP <- phenotype(SP)
 SP <- selects(SP)
 ```
 
-## Independent culling selection on multiple traits
+## Independent culling selection for multiple traits
 **[back to top](#contents)**  
 
-After setting a ***minimum selection criterion*** for each target trait. ***Independent culling selection*** will ***eliminate*** this individual when the candidate's performance on any trait is ***lower than the corresponding criteria***.  
+Set a ***minimum selection criterion*** for each target trait. Then a ***Independent culling selection*** will ***eliminate*** this individual when the candidate's performance on any trait is ***lower than the corresponding criteria***.  
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate genotype simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A")
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10, tr2 = 10))
 # Generate annotation simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP, 
-  pop.ind = 100,
   # phe.var = list(tr1 = 100, tr2 = 100),
   phe.model = list(
     tr1 = "T1 = A + E",
@@ -1877,21 +2187,20 @@ SP <- phenotype(SP)
 SP <- selects(SP)
 ```
 
-## Index selection on multiple traits
+## Index selection for multiple traits
 **[back to top](#contents)**  
 
-***Index selection*** is a comprehensive selection that will consider several traits based on their respective ***heritabilities***, ***phenotypic variances***, ***economic weights***, corresponding ***genetic correlations***, and ***phenotypes***. Then calculate the ***index value of each trait***, and eliminate or select it according to its level. Users can set the weight of each trait by ```index.wt```.  
+***Index selection*** is a comprehensive selection that will consider several traits based on their respective ***heritabilities***, ***phenotypic variances***, ***economic weights***, corresponding ***genetic correlations***, and ***phenotypes***. Then, **```SIMER```** calculates the ***index value of each trait***, eliminates it, or selects it according to its level. Users can set the weight of each trait at ```index.wt```.  
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate genotype simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10, tr2 = 10), qtn.model = "A")
+SP <- param.annot(pop.marker = 1e4, qtn.num = list(tr1 = 10, tr2 = 10))
 # Generate annotation simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
 SP <- param.pheno(
   SP = SP, 
-  pop.ind = 100,
   # phe.var = list(tr1 = 100, tr2 = 100),
   phe.model = list(
     tr1 = "T1 = A + E",
@@ -1911,21 +2220,21 @@ SP <- phenotype(SP)
 SP <- selects(SP)
 ```
 
-## Clone for plant
+## Clone for plants
 **[back to top](#contents)** 
 
-***Clone*** is a sexual reproduction method that does not involve germ cells and does not require a process of fertilization, directly forming a new individual's reproductive mode from a part of the mother. ***Sex*** of offspring will be ***0*** in ```clone```.   
+***Clone*** is a sexual reproduction method that does not involve germ cells and does not require a process of fertilization, but directly forms a new individual's reproductive mode from a part of the mother. ***Sex*** of offspring will be ***0*** in the ```clone```.   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate selection parameters
-SP <- param.sel(SP = SP, sel.single = "comb")
+SP <- param.sel(SP = SP, sel.single = "ind")
 # Generate reproduction parameters
 SP <- param.reprod(SP = SP, reprod.way = "clone")
 
@@ -1941,21 +2250,21 @@ SP <- selects(SP)
 SP <- reproduces(SP)
 ```
 
-## Double haploid for plant
+## Doubled haploid for plants
 **[back to top](#contents)**  
 
-***Double haploid*** is a reproduction method for breeding workers to obtain haploid plants. It induced double the number of chromosomes and restore the number of chromosomes in normal plants. ***Sex*** of offspring will be ***0*** in ```dh```.   
+***Doubled haploid*** is a reproduction method for breeding workers to obtain haploid plants. It induces a doubling of the number of chromosomes and restores the number of chromosomes in normal plants. ***Sex*** of offspring will be ***0*** in ```dh```.   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate selection parameters
-SP <- param.sel(SP = SP, sel.single = "comb")
+SP <- param.sel(SP = SP, sel.single = "ind")
 # Generate reproduction parameters
 SP <- param.reprod(SP = SP, reprod.way = "dh")
 
@@ -1971,7 +2280,7 @@ SP <- selects(SP)
 SP <- reproduces(SP)
 ```
 
-## Self-pollination for plant and micro-organism
+## Self-pollination for plants and micro-organisms
 **[back to top](#contents)** 
 
 ***Self-pollination*** refers to the combination of male and female gametes from the same individual or between individuals from the same clonal breeding line. ***Sex*** of offspring will be ***0*** in ```selfpol```.   
@@ -1979,13 +2288,13 @@ If users want to output files, please see **[File output](#file-output)**.
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate selection parameters
-SP <- param.sel(SP = SP, sel.single = "comb")
+SP <- param.sel(SP = SP, sel.single = "ind")
 # Generate reproduction parameters
 SP <- param.reprod(SP = SP, reprod.way = "selfpol")
 
@@ -2001,21 +2310,21 @@ SP <- selects(SP)
 SP <- reproduces(SP)
 ```
 
-## Random mating for plant and animal
+## Random mating for plants and animals
 **[back to top](#contents)**  
 
-In ***random mating***, any female or male individual has the same probability to mate with any opposite sex in a sexually reproducing organism. ***Sex*** of offspring in random mating is controlled by ```sex.ratio``` in ```randmate```.   
+In ***random mating***, any female or male individual has the same probability to mate with any member of opposite sex in a sexually reproducing organism. ***Sex*** of offspring in random mating is controlled by ```sex.ratio``` in ```randmate```.   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate selection parameters
-SP <- param.sel(SP = SP, sel.single = "comb")
+SP <- param.sel(SP = SP, sel.single = "ind")
 # Generate reproduction parameters
 SP <- param.reprod(SP = SP, reprod.way = "randmate")
 
@@ -2031,21 +2340,21 @@ SP <- selects(SP)
 SP <- reproduces(SP)
 ```
 
-## Random mating excluding self-pollination for animal
+## Random mating excluding self-pollination for animals
 **[back to top](#contents)**  
 
-In ***random mating excluding self-pollination***, an individual cannot mate to itself. ***Sex*** of offspring in random mating is controlled by ```sex.ratio``` in ```randexself```.   
+In ***random mating excluding self-pollination***, an individual cannot mate with itself. ***Sex*** of offspring in random mating is controlled by ```sex.ratio``` in ```randexself```.   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate selection parameters
-SP <- param.sel(SP = SP, sel.single = "comb")
+SP <- param.sel(SP = SP, sel.single = "ind")
 # Generate reproduction parameters
 SP <- param.reprod(SP = SP, reprod.way = "randexself")
 
@@ -2061,21 +2370,81 @@ SP <- selects(SP)
 SP <- reproduces(SP)
 ```
 
-## Two-way cross for animal
+## Assortative mating for plants and animals
 **[back to top](#contents)**  
 
-***Two-way cross*** method needs to use ***sex*** to distinguish ***two*** different breeds, in which the ***first breed*** is ***sire*** and the ***second breed*** is ***dam***.  
+In ***assortative mating***, mated pairs are of the same phenotype more often than would occur by chance. ***Sex*** of offspring in assortative mating is controlled by ```sex.ratio``` in ```assort```.   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate selection parameters
-SP <- param.sel(SP = SP, sel.single = "comb")
+SP <- param.sel(SP = SP, sel.single = "ind")
+# Generate reproduction parameters
+SP <- param.reprod(SP = SP, reprod.way = "assort")
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+# Run phenotype simulation
+SP <- phenotype(SP)
+# Run selection
+SP <- selects(SP)
+# Run reproduction
+SP <- reproduces(SP)
+```
+
+## Disassortative mating for plants and animals
+**[back to top](#contents)**  
+
+In ***disassortative mating***, mated pairs are of the same phenotype less often than would occur by chance. ***Sex*** of offspring in disassortative mating is controlled by ```sex.ratio``` in ```disassort```.   
+If users want to output files, please see **[File output](#file-output)**.  
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4)
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.ind = 1e2)
+# Generate phenotype simulation parameters
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
+# Generate selection parameters
+SP <- param.sel(SP = SP, sel.single = "ind")
+# Generate reproduction parameters
+SP <- param.reprod(SP = SP, reprod.way = "disassort")
+
+# Run annotation simulation
+SP <- annotation(SP)
+# Run genotype simulation
+SP <- genotype(SP)
+# Run phenotype simulation
+SP <- phenotype(SP)
+# Run selection
+SP <- selects(SP)
+# Run reproduction
+SP <- reproduces(SP)
+```
+
+## Two-way cross for animals
+**[back to top](#contents)**  
+
+The ***Two-way cross*** method needs to use ***sex*** to distinguish ***two*** different breeds, in which the ***first breed*** is ***sire*** and the ***second breed*** is ***dam***.  
+If users want to output files, please see **[File output](#file-output)**.  
+
+```r
+# Generate annotation simulation parameters
+SP <- param.annot(pop.marker = 1e4)
+# Generate genotype simulation parameters
+SP <- param.geno(SP = SP, pop.ind = 1e2)
+# Generate phenotype simulation parameters
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
+# Generate selection parameters
+SP <- param.sel(SP = SP, sel.single = "ind")
 # Generate reproduction parameters
 SP <- param.reprod(SP = SP, reprod.way = "2waycro")
 
@@ -2093,21 +2462,21 @@ SP <- selects(SP)
 SP <- reproduces(SP)
 ```
 
-## Three-way cross for animal
+## Three-way cross for animals
 **[back to top](#contents)** 
 
-***Three-way cross*** method needs to use ***sex*** to distinguish ***three*** different breeds, in which the ***first breed*** is ***sire*** and the ***second breed*** is ***dam*** in the ***first two-way cross***, the ***third breed*** is termimal ***sire***.  
+The ***Three-way cross*** method needs to use ***sex*** to distinguish ***three*** different breeds, in which the ***first breed*** is ***sire*** and the ***second breed*** is ***dam*** in the ***first two-way cross***, and the ***third breed*** is terminal ***sire***.  
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate selection parameters
-SP <- param.sel(SP = SP, sel.single = "comb")
+SP <- param.sel(SP = SP, sel.single = "ind")
 # Generate reproduction parameters
 SP <- param.reprod(SP = SP, reprod.way = "3waycro")
 
@@ -2125,21 +2494,21 @@ SP <- selects(SP)
 SP <- reproduces(SP)
 ```
 
-## Four-way cross for animal
+## Four-way cross for animals
 **[back to top](#contents)**  
 
-***Four-way cross*** method needs to use ***sex*** to distinguish ***four*** different breeds, in which the ***first breed*** is ***sire*** and the ***second breed*** is ***dam*** in the ***first two-way cross***, the ***third breed*** is ***sire*** and the ***fourth breed*** is ***dam*** in the ***second two-way cross***.  
+The ***Four-way cross*** method needs to use ***sex*** to distinguish ***four*** different breeds, in which the ***first breed*** is ***sire*** and the ***second breed*** is ***dam*** in the ***first two-way cross***, the ***third breed*** is ***sire*** and the ***fourth breed*** is ***dam*** in the ***second two-way cross***.  
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate selection parameters
-SP <- param.sel(SP = SP, sel.single = "comb")
+SP <- param.sel(SP = SP, sel.single = "ind")
 # Generate reproduction parameters
 SP <- param.reprod(SP = SP, reprod.way = "4waycro")
 
@@ -2160,18 +2529,18 @@ SP <- reproduces(SP)
 ## Back cross for animal
 **[back to top](#contents)**  
 
-***Back cross*** method needs to use ***sex*** to distinguish ***two*** different breeds, in which the ***first breed*** is always ***sire*** in each generation and the ***second breed*** is ***dam*** in the ***first two-way cross***.  
+The ***Back cross*** method needs to use ***sex*** to distinguish ***two*** different breeds, in which the ***first breed*** is always ***sire*** in each generation and the ***second breed*** is ***dam*** in the ***first two-way cross***.  
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate selection parameters
-SP <- param.sel(SP = SP, sel.single = "comb")
+SP <- param.sel(SP = SP, sel.single = "ind")
 # Generate reproduction parameters
 SP <- param.reprod(SP = SP, reprod.way = "backcro")
 
@@ -2189,19 +2558,19 @@ SP <- selects(SP)
 SP <- reproduces(SP)
 ```
 
-## User-designed pedigree mating for plant and animal
+## User-designed pedigree mating for plants and animals
 **[back to top](#contents)**  
 
-***User-designed pedigree mating*** needs a specific ***user-designed pedigree*** to control mating process. The first column is ***sample id***, the second column is ***paternal id***, and the third column is ***maternal id***. Please make sure that ***paternal id*** and ***maternal id*** can match to genotype data.  
+***User-designed pedigree mating*** needs a specific ***user-designed pedigree*** to control the mating process. The first column is ***sample id***, the second column is ***paternal id***, and the third column is ***maternal id***. Please make sure that ***paternal id*** and ***maternal id*** can match the genotype data.  
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
 # Generate annotation simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10))
+SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+SP <- param.geno(SP = SP, pop.ind = 1e2)
 # Generate phenotype simulation parameters
-SP <- param.pheno(SP = SP, pop.ind = 100)
+SP <- param.pheno(SP = SP, phe.h2A = list(tr1 = 0.3))
 # Generate reproduction parameters
 SP <- param.reprod(SP = SP, reprod.way = "userped")
 
@@ -2218,7 +2587,7 @@ SP <- reproduces(SP)
 ## AN EASY WAY TO GENERATE A POPULATION
 **[back to top](#contents)**  
 
-The above methods are to generate population ***step by step***, which are ***easy to understand***. Actually, **```SIMER```** can directly generate a population in a ***MORE CONVENIENT*** way.   
+The above methods are to generate populations ***step by step***, which are ***easy to understand***. Actually, **```SIMER```** can generate a population directly in a ***MORE CONVENIENT*** way.   
 If users want to output files, please see **[File output](#file-output)**.  
 
 ```r
@@ -2234,7 +2603,7 @@ SP <- simer(SP)
 # Breeding Program Design
 **[back to top](#contents)**  
 
-After generating a population, further work can be done. Breeders wish to evaluate their ***Breeding Program Design***. To save a lot of money and time, **```SIMER```** can assist breeders to evaluate their ***Breeding Program Design*** by simulation. 
+After generating a population, further work can be done. Breeders wish to evaluate their ***Breeding Program Design***. To save money and time, **```SIMER```** can assist breeders to evaluate their ***Breeding Program Design*** by simulation. 
 
 ## Gallery of breeding program design parameters
 **[back to top](#contents)**
@@ -2256,6 +2625,12 @@ After generating a population, further work can be done. Breeders wish to evalua
 <td>NULL</td>
 <td>character</td>
 <td>the path of JSON file.</td>
+</tr>
+<tr>
+<td><b>hiblupPath</b></td>
+<td>''</td>
+<td>character</td>
+<td>the path of HIBLUP software.</td>
 </tr>
 <tr>
 <td><b>out</b></td>
@@ -2296,14 +2671,16 @@ After generating a population, further work can be done. Breeders wish to evalua
 </tbody>
 </table>
 
-## Breeding program design preparation
+## Preparation of a breeding program design
 **[back to top](#contents)**
 
 ***Breeding program design*** should be stored on a ***JSON*** file. 
 > ***plan1.json***  
->> ***genotype***: the path of genotype data  
->> ***pedigree***: the filename of pedigree data  
+>> ***genotype***: the absolute path or relative path to JSON file of genotype data  
+>> ***pedigree***: the filename with absolute path or relative path to JSON file of pedigree data  
 >> ***selection_index***: the economic weight of phenotype for each trait  
+>> ***threads***: the threads number used in multiple threads computation  
+>> ***genetic_progress***: the genetic progress of a breeding plan  
 >> ***breeding_value_index***: the economic weight of breeding value for each trait  
 >> ***auto_optimization***: optimizing EBV estimated model and selection index automatically  
 >> ***quality_control_plan***: the quality control plan for genotype, pedigree, and phenotype  
@@ -2324,7 +2701,7 @@ After generating a population, further work can be done. Breeders wish to evalua
 
 >>> ***phenotype_quality_control***: the quality control plan for phenotype  
 >>>> ***job_name***: the name of phenotype quality control job  
->>>> ***sample_info***: the filename of phenotype data   
+>>>> ***sample_info***: the filename with absolute path or relative path to JSON file of phenotype data   
 >>>> ***repeated_records***: whether phenotype data contains repeated records  
 >>>> ***multi_trait***: whether phenotype data contains multiple traits  
 >>>> ***filter***: the 'filter' (individual) condition for phenotyped individual  
@@ -2332,24 +2709,28 @@ After generating a population, further work can be done. Breeders wish to evalua
 >>>> ***arrange***: the 'arrange' (order) condition for phenotyped individual  
 >>>> ***job_traits***: the trait need quality control and its definition and range  
 
->> ***analysis_plan***: the genetic evaluation plan  
+>> ***breeding_plan***: the genetic evaluation plan  
 >>> ***job_name***: the name of phenotype quality control job  
->>> ***sample_info***: the filename of phenotype data   
+>>> ***sample_info***: the filename with absolute path or relative path to JSON file of phenotype data   
 >>> ***repeated_records***: whether phenotype data contains repeated records  
 >>> ***multi_trait***: whether phenotype data contains multiple traits  
+>>> ***vc_vars***: the filename of variance component data  
+>>> ***vc_covars***: the filename of covariance component data  
 >>> ***random_ratio***: the least random effect ratio to phenotype variance  
 >>> ***job_traits***: the trait need analysis and its covariate, fixed effect, and random effect  
 
 ```json
 {
-    "genotype": ["/home/yindong/R/x86_64-pc-linux-gnu-library/4.0/simer/extdata/02plinkb"],
-    "pedigree": ["/home/yindong/R/x86_64-pc-linux-gnu-library/4.0/simer/extdata/05others/pedigree.txt"],
-    "selection_index": [],
-    "breeding_value_index": "0.2 * T1 + 0.8 * T2",
+    "genotype": "../02plinkb",
+    "pedigree": "../05others/pedigree.txt",
+    "selection_index": "100 - 0.2 * T1 + 0.8 * T2",
+    "threads": 16,
+    "genetic_progress": [],
+    "breeding_value_index": "-0.2 * T1 + 0.8 * T2",
     "auto_optimization": true,
     "quality_control_plan": {
         "genotype_quality_control":{
-            "filter": ["F1 == 'Male'"],
+            "filter": "F1 == 'Male'",
             "filter_geno": 0.1,
             "filter_mind": 0.1,
             "filter_maf": 0.05,
@@ -2359,16 +2740,16 @@ After generating a population, further work can be done. Breeders wish to evalua
             "standard_ID": false,
             "candidate_sire_file": [],
             "candidate_dam_file": [],
-            "exclude_threshold": 0.01, 
-            "assign_threshold": 0.005
+            "exclude_threshold": 0.1, 
+            "assign_threshold": 0.05
         },
         "phenotype_quality_control":[
             {
-                "job_name": "Data Quality Control Demo",
-                "sample_info": "/home/yindong/R/x86_64-pc-linux-gnu-library/4.0/simer/extdata/05others/phenotype.txt",
+                "job_name": "Data_Quality_Control_Demo",
+                "sample_info": "../05others/phenotype.txt",
                 "repeated_records": false,
                 "multi_trait": true,
-                "filter": ["F1 == 'Male'"],
+                "filter": "F1 == 'Male'",
                 "job_traits": [
                     {
                         "traits": "T1",
@@ -2384,12 +2765,14 @@ After generating a population, further work can be done. Breeders wish to evalua
             }
         ]
     },
-    "analysis_plan":[
+    "breeding_plan":[
         {
-            "job_name": "EBV Model Demo",
-            "sample_info": "/home/yindong/R/x86_64-pc-linux-gnu-library/4.0/simer/extdata/05others/phenotype.txt",
+            "job_name": "EBV_Model_Demo",
+            "sample_info": "../05others/phenotype.txt",
             "repeated_records": false,
             "multi_trait": true,
+            "vc_vars": [],
+            "vc_covars": [],
             "random_ratio": 0.05,
             "job_traits": [
                 {
@@ -2410,13 +2793,13 @@ After generating a population, further work can be done. Breeders wish to evalua
 }
 ```
 
-## Breeding program design evaluation
+## Evaluation of a breeding program design
 **[back to top](#contents)**  
 
-In ***Breeding program design evaluation***, **```SIMER```** will complete the following three tasks:  
+To evaluate the breeding program design, **```SIMER```** completes the following three tasks:  
 ***(1)*** Data quality control for genotype, pedigree, and phenotype  
-***(2)*** Model optimization (the most suitable covariate, fixed effect, and random effect)  
-***(3)*** Selection Index construction and Genetic Progress calculation  
+***(2)*** Model optimization (i.e., the most suitable covariate, fixed effect, and random effect)  
+***(3)*** Construction of Selection Index and calculation of Genetic Progress
 
 ```r
 # Get JSON file
@@ -2521,17 +2904,17 @@ Users can use global parameters to control the ***population properties*** , ***
 ## Counts of total population size
 **[back to top](#contents)**  
 
-Users can calculate the ***number of individuals per generation*** by ```IndPerGen``` directly.
+Users can calculate the ***number of individuals per generation*** using ```IndPerGen``` directly.
 
 ```r
 pop <- generate.pop(pop.ind = 100)
 count.ind <- IndPerGen(pop = pop, pop.gen = 2, ps = c(0.8, 0.8), reprod.way = "randmate", sex.rate = 0.5, prog = 2)
 ```
 
-## Multi-thread simulation
+## Multi-thread computation
 **[back to top](#contents)**  
 
-**```SIMER```** is able to run on ***multiple threads***. Users can easily change the number of threads used for simulation by following:
+**```SIMER```** runs on ***multiple threads***. Users can easily change the number of threads used for simulation by the following:
 
 ```r
 # Generate all simulation parameters
@@ -2544,7 +2927,7 @@ SP <- simer(SP)
 ## Multi-population simulation
 **[back to top](#contents)**
 
-Simulation of ***multiple populations*** can be realized by ```for``` in **R** software.
+Simulation of ***multiple populations*** can be realized by ```for``` by using **R** software.
 
 ```r
 # Replication times
@@ -2555,7 +2938,7 @@ SPs <- rep(list(NULL), rep)
 
 for (i in 1:rep) {
   # Generate all simulation parameters
-  SP <- param.simer(replication = i, sim.seed = i, out = "simer")
+  SP <- param.simer(replication = i, seed.sim = i, out = "simer")
 
   # Run Simer
   SPs[[i]] <- simer(SP)
@@ -2566,7 +2949,7 @@ for (i in 1:rep) {
 ## File output
 **[back to top](#contents)** 
 
-**```SIMER```** won't output files by default. A series of files with the prefix ```out``` will output when specifying ```outpath```.
+**```SIMER```** will not output files by default. A series of files with the prefix ```out``` will output when specifying ```outpath```.
 
 ```r
 ### 01 Numeric Format ###
@@ -2597,7 +2980,7 @@ SP <- simer(SP)
 ## Generation-selective output
 **[back to top](#contents)**  
 
-Output of genotype and phenotype can be ***generation-selective*** by ```out.geno.gen``` and ```out.pheno.gen```. 
+Output of genotype and phenotype can be ***generation-selective*** using ```out.geno.gen``` and ```out.pheno.gen```. 
 
 ```r
 # Generate all simulation parameters

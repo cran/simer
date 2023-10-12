@@ -11,8 +11,8 @@ simer.Data.Ped(
   standardID = FALSE,
   fileSir = NULL,
   fileDam = NULL,
-  exclThres = 0.01,
-  assignThres = 0.005,
+  exclThres = 0.1,
+  assignThres = 0.05,
   header = TRUE,
   sep = "\\t",
   ncpus = 0,
@@ -47,8 +47,8 @@ simer.Data.Ped(
 \value{
 the function returns files
 \describe{
-\item{<out>.report.ped}{the report file containing correction condition.}
-\item{<out>.error.ped}{the file containing pedigree error.}
+\item{<out>.ped.report}{the report file containing correction condition.}
+\item{<out>.ped.error}{the file containing pedigree error.}
 \item{<out>.ped}{the pedigree file after correction.}
 }
 }
@@ -60,11 +60,16 @@ Build date: May 6, 2021
 Last update: Apr 28, 2022
 }
 \examples{
+\donttest{
 # Get the filename of pedigree data
 filePed <- system.file("extdata", "05others", "pedigree.txt", package = "simer")
 
+# Get the prefix of genotype data
+fileMVP <- system.file("extdata", "01bigmemory", "demo", package = "simer")
+
 # Run pedigree correction
-simer.Data.Ped(filePed = filePed, out = tempfile("outfile"))
+simer.Data.Ped(filePed = filePed, fileMVP = fileMVP, out = tempfile("outfile"))
+}
 }
 \author{
 Lilin Yin and Dong Yin

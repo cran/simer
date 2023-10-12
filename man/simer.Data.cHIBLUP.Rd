@@ -6,6 +6,7 @@
 \usage{
 simer.Data.cHIBLUP(
   jsonList = NULL,
+  hiblupPath = "",
   mode = "A",
   vc.method = "AI",
   ncpus = 10,
@@ -14,6 +15,8 @@ simer.Data.cHIBLUP(
 }
 \arguments{
 \item{jsonList}{the list of genetic evaluation parameters.}
+
+\item{hiblupPath}{the path of HIBLUP software.}
 
 \item{mode}{'A' or 'AD', Additive effect model or Additive and Dominance model.}
 
@@ -42,7 +45,7 @@ Last update: Apr 28, 2022
 \examples{
 # Read JSON file
 jsonFile <- system.file("extdata", "04breeding_plan", "plan1.json", package = "simer")
-jsonList <- rjson::fromJSON(file = jsonFile)
+jsonList <- jsonlite::fromJSON(txt = jsonFile, simplifyVector = FALSE)
 
 \dontrun{
 # It needs 'hiblup' software

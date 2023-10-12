@@ -35,13 +35,13 @@
 #' \item{$selection_index}{the selection index for all traits.}
 #' \item{$breeding_value_index}{the breeding value index for all traits.}
 #' \item{$quality_control_plan}{a list of parameters for data quality control.}
-#' \item{$analysis_plan}{a list of parameters for genetic evaluation.}
+#' \item{$breeding_plan}{a list of parameters for genetic evaluation.}
 #' }
 #' 
 #' @examples
 #' # Read JSON file
 #' jsonFile <- system.file("extdata", "04breeding_plan", "plan1.json", package = "simer")
-#' jsonList <- rjson::fromJSON(file = jsonFile)
+#' jsonList <- jsonlite::fromJSON(txt = jsonFile, simplifyVector = FALSE)
 #' 
 #' \dontrun{
 #' # It needs 'plink' and 'hiblup' software
@@ -50,12 +50,17 @@
 simer.Data <- function(jsonList = NULL, out = 'simer.qc', ncpus = 0, verbose = TRUE) {
   
   # global parameters
-  outpath <- dirname(out)
+  if (is.null(out)) {
+    outpath <- getwd()
+  } else {
+    outpath <- dirname(out)
+  }
+  
   if (!dir.exists(outpath)) { dir.create(outpath) }
   maxLine <- 10000
   priority <- "speed"
   
-  genoPath <- jsonList$genotype
+  genoPath <- unlist(jsonList$genotype)
   fileMVP <- fileBed <- filePlinkPed <-  NULL
   if (length(genoPath) != 0) {
     genoFiles <- list.files(genoPath)
@@ -82,21 +87,21 @@ simer.Data <- function(jsonList = NULL, out = 'simer.qc', ncpus = 0, verbose = T
     }
   }
   genoType <- "char"
-  filter_geno <- jsonList$quality_control_plan$genotype_quality_control$filter
-  filterGeno <- jsonList$quality_control_plan$genotype_quality_control$filter_geno
-  filterHWE <- jsonList$quality_control_plan$genotype_quality_control$filter_hwe
-  filterMind <- jsonList$quality_control_plan$genotype_quality_control$filter_mind
-  filterMAF <- jsonList$quality_control_plan$genotype_quality_control$filter_maf
+  filter_geno <- unlist(jsonList$quality_control_plan$genotype_quality_control$filter)
+  filterGeno <- unlist(jsonList$quality_control_plan$genotype_quality_control$filter_geno)
+  filterHWE <- unlist(jsonList$quality_control_plan$genotype_quality_control$filter_hwe)
+  filterMind <- unlist(jsonList$quality_control_plan$genotype_quality_control$filter_mind)
+  filterMAF <- unlist(jsonList$quality_control_plan$genotype_quality_control$filter_maf)
   
-  filePed <- jsonList$pedigree
-  standardID <- jsonList$quality_control_plan$pedigree_quality_control$standard_ID
-  fileSir <- jsonList$quality_control_plan$pedigree_quality_control$candidate_sire_file
-  fileDam <- jsonList$quality_control_plan$pedigree_quality_control$candidate_dam_file
-  exclThres <- jsonList$quality_control_plan$pedigree_quality_control$exclude_threshold
-  assignThres <- jsonList$quality_control_plan$pedigree_quality_control$assign_threshold
+  filePed <- unlist(jsonList$pedigree)
+  standardID <- unlist(jsonList$quality_control_plan$pedigree_quality_control$standard_ID)
+  fileSir <- unlist(jsonList$quality_control_plan$pedigree_quality_control$candidate_sire_file)
+  fileDam <- unlist(jsonList$quality_control_plan$pedigree_quality_control$candidate_dam_file)
+  exclThres <- unlist(jsonList$quality_control_plan$pedigree_quality_control$exclude_threshold)
+  assignThres <- unlist(jsonList$quality_control_plan$pedigree_quality_control$assign_threshold)
   pedSep <- "\t"
   
-  filePhe <- sapply(jsonList$quality_control_plan$phenotype_quality_control, function(x) return(x$sample_info))
+  filePhe <- unlist(sapply(jsonList$quality_control_plan$phenotype_quality_control, function(x) return(x$sample_info)))
   planPhe <- jsonList$quality_control_plan$phenotype_quality_control
   pheCols <- NULL
   pheSep <- "\t"
@@ -162,7 +167,7 @@ simer.Data <- function(jsonList = NULL, out = 'simer.qc', ncpus = 0, verbose = T
         verbose = verbose)
     
     for (i in 1:length(filePhe)) {
-      jsonList$analysis_plan[[i]]$sample_info <- pheFileName[i]
+      jsonList$breeding_plan[[i]]$sample_info <- pheFileName[i]
     }
   }
   
@@ -195,18 +200,20 @@ simer.Data <- function(jsonList = NULL, out = 'simer.qc', ncpus = 0, verbose = T
 #' }
 #' 
 #' @examples
+#' \donttest{
 #' # Get the prefix of genotype data
 #' fileMVP <- system.file("extdata", "01bigmemory", "demo", package = "simer")
 #' 
 #' # Convert genotype data from MVP to MVP
 #' simer.Data.MVP2MVP(fileMVP, out = tempfile("outfile"))
+#' }
 simer.Data.MVP2MVP <- function(fileMVP, genoType = 'char', out = 'simer', verbose = TRUE) {
   t1 <- as.numeric(Sys.time())
   
   if (fileMVP != out) { remove_bigmatrix(out) }
-  fileDesc <- normalizePath(paste0(fileMVP, '.geno.desc'), mustWork = TRUE)
-  fileInd <- normalizePath(paste0(fileMVP, '.geno.ind'), mustWork = TRUE)
-  fileMap <- normalizePath(paste0(fileMVP, '.geno.map'), mustWork = TRUE)
+  fileDesc <- normalizePath(paste0(fileMVP, '.geno.desc'), winslash = "/", mustWork = TRUE)
+  fileInd <- normalizePath(paste0(fileMVP, '.geno.ind'), winslash = "/", mustWork = TRUE)
+  fileMap <- normalizePath(paste0(fileMVP, '.geno.map'), winslash = "/", mustWork = TRUE)
   
   backingfile <- paste0(basename(out), ".geno.bin")
   descriptorfile <- paste0(basename(out), ".geno.desc")
@@ -218,12 +225,13 @@ simer.Data.MVP2MVP <- function(fileMVP, genoType = 'char', out = 'simer', verbos
            backingpath =dirname(out),
            descriptorfile = descriptorfile,
   )
+  rm(bigmat); gc();
   file.copy(fileInd, paste0(out, ".geno.ind"))
   file.copy(fileMap, paste0(out, ".geno.map"))
   
   t2 <- as.numeric(Sys.time())
   logging.log("Preparation for GENOTYPE data is done within", format_time(t2 - t1), "\n\n", verbose = verbose)
-  return(invisible(dim(bigmat)))
+  return(invisible(descriptorfile))
 }
 
 #' Genotype data imputation
@@ -268,14 +276,14 @@ simer.Data.Impute <- function(fileMVP = NULL, fileBed = NULL, out = NULL, maxLin
   }
   
   if (!is.null(fileMVP)) {
-    descFile <- normalizePath(paste0(fileMVP, ".geno.desc"), mustWork = TRUE)
+    descFile <- normalizePath(paste0(fileMVP, ".geno.desc"), winslash = "/", mustWork = TRUE)
     bigmat <- attach.big.matrix(descFile)
     if (!hasNA(bigmat@address)) {
       message("No NA in genotype, imputation has been skipped.")
       return()
     } else {
       if (is.null(out)) { out <- paste0(fileMVP, ".imp") }
-      mapFile <- normalizePath(paste0(fileMVP, ".geno.map"), mustWork = TRUE)
+      mapFile <- normalizePath(paste0(fileMVP, ".geno.map"), winslash = "/", mustWork = TRUE)
       map <- read.table(mapFile, header = TRUE)
       tmpout <- tempfile()
       simer.Data.MVP2Bfile(bigmat = bigmat, map = map, out = tmpout, threads = ncpus, verbose = verbose)
@@ -284,8 +292,8 @@ simer.Data.Impute <- function(fileMVP = NULL, fileBed = NULL, out = NULL, maxLin
   }
   
   if (!is.null(fileBed)) {
-    famFile <- normalizePath(paste0(fileBed, '.fam'), mustWork = TRUE)
-    bedFile <- normalizePath(paste0(fileBed, '.bed'), mustWork = TRUE)
+    famFile <- normalizePath(paste0(fileBed, '.fam'), winslash = "/", mustWork = TRUE)
+    bedFile <- normalizePath(paste0(fileBed, '.bed'), winslash = "/", mustWork = TRUE)
     fam <- read.table(famFile, header = FALSE)
     n <- nrow(fam)
     hasNA <- hasNABed(bedFile, n, maxLine, ncpus, verbose)
@@ -294,7 +302,8 @@ simer.Data.Impute <- function(fileMVP = NULL, fileBed = NULL, out = NULL, maxLin
       return()
     } else {
       if (is.null(out)) { out <- paste0(fileBed, ".imp") }
-      system(paste('plink --bfile', tmpout, "--recode vcf-iid --out", tmpout))
+      tmpout <- tempfile()
+      system(paste('plink --bfile', fileBed, "--recode vcf-iid --out", tmpout))
     }
   }
   
@@ -387,9 +396,9 @@ simer.Data.Geno <- function(fileMVP = NULL, fileBed = NULL, filePlinkPed = NULL,
     if (is.null(out)) { out <- paste0(fileMVP, ".qc") }
     if (fileMVP != out) { remove_bigmatrix(out) }
     
-    fileDesc <- normalizePath(paste0(fileMVP, '.geno.desc'), mustWork = TRUE)
-    fileInd <- normalizePath(paste0(fileMVP, '.geno.ind'), mustWork = TRUE)
-    fileMap <- normalizePath(paste0(fileMVP, '.geno.map'), mustWork = TRUE)
+    fileDesc <- normalizePath(paste0(fileMVP, '.geno.desc'), winslash = "/", mustWork = TRUE)
+    fileInd <- normalizePath(paste0(fileMVP, '.geno.ind'), winslash = "/", mustWork = TRUE)
+    fileMap <- normalizePath(paste0(fileMVP, '.geno.map'), winslash = "/", mustWork = TRUE)
     
     genoInd <- read.table(fileInd, sep = '\t', header = FALSE)[, 1]
     genoMap <- read.table(fileMap, sep = '\t', header = TRUE)
@@ -410,6 +419,7 @@ simer.Data.Geno <- function(fileMVP = NULL, fileBed = NULL, filePlinkPed = NULL,
              backingpath =dirname(out),
              descriptorfile = descriptorfile,
     )
+    rm(bigmat); gc();
     
     genoInd <- genoInd[keepCols]
     genoMap <- genoMap[keepRows, ]
@@ -418,12 +428,15 @@ simer.Data.Geno <- function(fileMVP = NULL, fileBed = NULL, filePlinkPed = NULL,
   }
   
   if (!is.null(fileBed) | !is.null(filePlinkPed)) {
+    if (is.null(out)) {
+      out <- ifelse(is.null(fileBed), paste0(filePlinkPed, ".qc"), paste0(fileBed, ".qc"))
+    }
     if (!is.null(keepInds)) {
       keepInds <- cbind(keepInds, keepInds)
       write.table(keepInds, "simer.geno.ind", quote = FALSE, sep = ' ', row.names = FALSE, col.names = FALSE)
     }
     completeCmd <- 
-      paste("plink", ifelse(is.null(fileBed), " --file", "--bfile"), fileBed,
+      paste("plink", ifelse(is.null(fileBed), paste("--file", filePlinkPed), paste("--bfile", fileBed)),
             ifelse(length(keepInds) == 0, "", paste("--keep simer.geno.ind")),
             ifelse(length(filterGeno) == 0, "", paste("--geno", filterGeno)),
             ifelse(length(filterHWE) == 0, "", paste("--hwe", filterHWE)),
@@ -466,19 +479,24 @@ simer.Data.Geno <- function(fileMVP = NULL, fileBed = NULL, filePlinkPed = NULL,
 #' @return 
 #' the function returns files
 #' \describe{
-#' \item{<out>.report.ped}{the report file containing correction condition.}
-#' \item{<out>.error.ped}{the file containing pedigree error.}
+#' \item{<out>.ped.report}{the report file containing correction condition.}
+#' \item{<out>.ped.error}{the file containing pedigree error.}
 #' \item{<out>.ped}{the pedigree file after correction.}
 #' }
 #' 
 #' @examples
+#' \donttest{
 #' # Get the filename of pedigree data
 #' filePed <- system.file("extdata", "05others", "pedigree.txt", package = "simer")
 #' 
+#' # Get the prefix of genotype data
+#' fileMVP <- system.file("extdata", "01bigmemory", "demo", package = "simer")
+#' 
 #' # Run pedigree correction
-#' simer.Data.Ped(filePed = filePed, out = tempfile("outfile"))
+#' simer.Data.Ped(filePed = filePed, fileMVP = fileMVP, out = tempfile("outfile"))
+#' }
 simer.Data.Ped <- function(filePed, fileMVP = NULL, out = NULL, standardID = FALSE, fileSir = NULL, fileDam = NULL, 
-                           exclThres = 0.01, assignThres = 0.005, header = TRUE, sep = '\t', ncpus = 0, verbose = TRUE) {
+                           exclThres = 0.1, assignThres = 0.05, header = TRUE, sep = '\t', ncpus = 0, verbose = TRUE) {
   t1 <- as.numeric(Sys.time())
   logging.log(" Start Checking Pedigree Data.\n", verbose = verbose)
   
@@ -521,8 +539,9 @@ simer.Data.Ped <- function(filePed, fileMVP = NULL, out = NULL, standardID = FAL
       stop("Please check your data! pegigree information in 15 columns which contain 3 generations' information are needed!")
     if (standardID) {
       id <- unique(c(pedigree))
-      if (sum(nchar(id) != 15) > 0)
+      if (sum(nchar(id) != 15) > 0) {
         stop(paste("The format of below individuals don't meet the requirements:","\n", id[nchar(id) != 15], sep = ""))
+      }
     }
     # Ind Sir  SS  SD SSS SSD SDS SDD Dam  DS  DD DSS DSD DDS DDD
     #   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
@@ -562,17 +581,17 @@ simer.Data.Ped <- function(filePed, fileMVP = NULL, out = NULL, standardID = FAL
       cbind(pedigree[, 14], 0, 0),
       cbind(pedigree[, 15], 0, 0)
     )
-    pedx <- pedx[!duplicated(pedx[, 1]), ]
-  }else{
+  } else {
     pedx <- pedigree
     pedx0 <- setdiff(pedx[,c(2:3)], pedx[, 1])
     pedx0 <- pedx0[pedx0 != "0"]
-    if(length(pedx0) > 0){
+    if (length(pedx0) > 0) {
       pedx0 <- cbind(pedx0, "0", "0")
       colnames(pedx0) <- colnames(pedx)
       pedx <- rbind(pedx0, pedx)
     }
   }
+  pedName <- colnames(pedx)
   pedx <- pedx[pedx[, 1] != "0", ]
   pedError <- pedx[duplicated(pedx[, 1]), ]
   pedx <- pedx[!duplicated(pedx[, 1]), ]
@@ -580,92 +599,85 @@ simer.Data.Ped <- function(filePed, fileMVP = NULL, out = NULL, standardID = FAL
   if (length(fileMVP) == 0) { fileMVP <- NULL }
   if (!is.null(fileMVP)) {
     hasGeno <- TRUE
-    genoFile <- normalizePath(paste0(fileMVP, ".geno.desc"), mustWork = TRUE)
-    genoIDFile <- normalizePath(paste0(fileMVP, ".geno.ind"), mustWork = TRUE)
+    genoFile <- normalizePath(paste0(fileMVP, ".geno.desc"), winslash = "/", mustWork = TRUE)
+    genoIDFile <- normalizePath(paste0(fileMVP, ".geno.ind"), winslash = "/", mustWork = TRUE)
     genoID <- as.character(unlist(read.table(genoIDFile, header = FALSE)))
     geno <- attach.big.matrix(genoFile)
   } else {
     hasGeno <- FALSE
   }
   
-  if (standardID == TRUE) {
-    pedx <- cbind(pedx, substr(pedx[, 1], 8, nchar(pedx[, 1])))
-    index.born <- order(as.numeric(pedx[, 4]))
-    pedx <- pedx[index.born, ]
-    ped <- pedx[, 1:3]
-    birthDate <- as.numeric(pedx[, 4])
-    rm(pedx); gc()
-    if (hasGeno) {
-      ped <- PedigreeCorrector(geno@address, genoID, ped, candSir, candDam, exclThres, assignThres, birthDate, ncpus, verbose)
-    }
-    
-  }else{
-    if (hasGeno) {
-      birthDate = NULL
-      pedx <- PedigreeCorrector(geno@address, genoID, pedx, candSir, candDam, exclThres, assignThres, birthDate, ncpus, verbose)
-    }
-    
-    # print("Making needed files")
-    pedx1 <- pedx[pedx[, 2] == "0" & pedx[, 3] == "0", ]
-    pedx2 <- pedx[!(pedx[, 2] == "0" & pedx[, 3] == "0"), ]
-    go = TRUE
-    while(go == TRUE) {
-      Cpedx <- pedx1[, 1]
-      index <- (pedx2[, 2] %in% Cpedx) & (pedx2[, 3] %in% Cpedx)
-      if (sum(index) == 0) {
-        index.sir <- pedx2[, 2] %in% Cpedx
-        index.dam <- pedx2[, 3] %in% Cpedx
-        if (sum(index.sir) != 0 | sum(index.dam) != 0) {
-          # only one parent can be found
-          pedError <- rbind(pedError, pedx2[index.sir | index.dam, 1:3])
-          pedx2[index.sir, 3] <- "0"
-          pedx2[index.dam, 2] <- "0"
-          pedx1 <- rbind(pedx1, pedx2[index.sir | index.dam, ])
-          pedx2 <- pedx2[!(index.sir | index.dam), ]
-        } else {
-          # no parent can be found
-          pedx02 <- setdiff(pedx2[,c(2:3)], pedx2[, 1])
-          pedx02 <- pedx02[pedx02 != "0"]
-          if(length(pedx02) > 0){
-            pedx02 <- cbind(pedx02, "0", "0")
-            colnames(pedx02) <- colnames(pedx2)
-            pedx1 <- rbind(pedx1, pedx02)
-          } else {
-            pedError <- rbind(pedError, pedx2[, 1:3])
-            pedx2[, 2:3] <- "0"
-            pedx1 <- rbind(pedx1, pedx2)
-            pedx2 <- pedx2[-(1:nrow(pedx2)), ]
-          }
-        }
-      } else {
-        pedx1 <- rbind(pedx1, pedx2[index, ])
-        pedx2 <- pedx2[!index, ]
-      }
-      if ("character" %in% class(pedx2)) pedx2 <- matrix(pedx2, 1)
-      if (nrow(pedx2) == 0) go = FALSE
-    }
-    ped <- pedx1
-    rm(pedx1);rm(pedx2);gc()
+  if (standardID) {
+    birthDate <- as.numeric(substr(pedx[, 1], 8, nchar(pedx[, 1])))
+  } else {
+    birthDate <- NULL
   }
   
   if (hasGeno) {
-    pedError <- rbind(pedError, ped[ped$sirState=="NotFound" | ped$damState=="NotFound", 1:3])
-    pedUse <- ped[, 1:3]
-    pedUse$sir[ped$sirState == "NotFound"] <- "0"
-    pedUse$dam[ped$damState == "NotFound"] <- "0"
+    pedx <- PedigreeCorrector(geno@address, genoID, pedx, candSir, candDam, exclThres, assignThres, birthDate, ncpus, verbose)
+    colnames(pedx)[1:3] <- pedName
+    pedError <- rbind(pedError, pedx[pedx$sirState=="NotFound" | pedx$damState=="NotFound", 1:3])
   } else {
-    pedError <- rbind(pedError, ped[ped[, 1]==ped[, 2] | ped[, 1] == ped[, 3], 1:3])
-    pedUse <- ped[, 1:3]
-    pedUse[pedUse[, 1] == pedUse[, 2], 2] <- "0"
-    pedUse[pedUse[, 1] == pedUse[, 3], 3] <- "0"
+    pedError <- rbind(pedError, pedx[pedx[, 1] == pedx[, 2] | pedx[, 1] == pedx[, 3], ])
+    pedx[pedx[, 1] == pedx[, 2], 2] <- "0"
+    pedx[pedx[, 1] == pedx[, 3], 3] <- "0"
   }
+
+  # print("Making needed files")
+  pedx1 <- pedx[pedx[, 2] == "0" & pedx[, 3] == "0", ]
+  pedx2 <- pedx[!(pedx[, 2] == "0" & pedx[, 3] == "0"), ]
+  go <- TRUE
+  while (go) {
+    Cpedx <- pedx1[, 1]
+    index <- (pedx2[, 2] %in% Cpedx) & (pedx2[, 3] %in% Cpedx)
+    if (sum(index) == 0) {
+      index.sir <- pedx2[, 2] %in% Cpedx
+      index.dam <- pedx2[, 3] %in% Cpedx
+      if (sum(index.sir) != 0 | sum(index.dam) != 0) {
+        # only one parent can be found
+        pedError <- rbind(pedError, pedx2[index.sir | index.dam, 1:3])
+        pedx2[index.sir, 3] <- "0"
+        pedx2[index.dam, 2] <- "0"
+        if (hasGeno) {
+          pedx2[index.sir, 5] <- "NotFound"
+          pedx2[index.dam, 4] <- "NotFound"
+        }
+        pedx1 <- rbind(pedx1, pedx2[index.sir | index.dam, ])
+        pedx2 <- pedx2[!(index.sir | index.dam), ]
+      } else {
+        # no parent can be found
+        pedx02 <- setdiff(pedx2[,c(2:3)], pedx2[, 1])
+        pedx02 <- pedx02[pedx02 != "0"]
+        if(length(pedx02) > 0){
+          pedx02 <- cbind(pedx02, "0", "0")
+          colnames(pedx02) <- colnames(pedx2)
+          pedx1 <- rbind(pedx1, pedx02)
+        } else {
+          pedError <- rbind(pedError, pedx2[, 1:3])
+          pedx2[, 2:3] <- "0"
+          if (hasGeno) {
+            pedx2[, 4:5] <- "NotFound"
+          }
+          pedx1 <- rbind(pedx1, pedx2)
+          pedx2 <- pedx2[-(1:nrow(pedx2)), ]
+        }
+      }
+    } else {
+      pedx1 <- rbind(pedx1, pedx2[index, ])
+      pedx2 <- pedx2[!index, ]
+    }
+    if ("character" %in% class(pedx2)) { pedx2 <- matrix(pedx2, 1) }
+    if (nrow(pedx2) == 0) { go <- FALSE }
+  }
+  ped <- pedx1
+  rm(pedx1); rm(pedx2); gc()
   
   if (is.null(out)) {
     out <- unlist(strsplit(filePed, split = '.', fixed = TRUE))[1]
   }
-  write.table(ped, paste0(out, ".report.ped"), quote = FALSE, row.names = FALSE, col.names = TRUE, sep='\t')
-  write.table(pedError, paste0(out, ".error.ped"), quote = FALSE, row.names = FALSE, col.names = TRUE, sep='\t')
-  write.table(pedUse, paste0(out, ".ped"), quote = FALSE, row.names = FALSE, col.names = TRUE, sep='\t')
+  write.table(ped, paste0(out, ".ped.report"), quote = FALSE, row.names = FALSE, col.names = TRUE, sep='\t')
+  write.table(pedError, paste0(out, ".ped.error"), quote = FALSE, row.names = FALSE, col.names = TRUE, sep='\t')
+  write.table(ped[, 1:3], paste0(out, ".ped"), quote = FALSE, row.names = FALSE, col.names = TRUE, sep='\t')
   
   t2 <- as.numeric(Sys.time())
   logging.log(" Preparation for PEDIGREE data is done within", format_time(t2 - t1), "\n\n", verbose = verbose)
@@ -744,17 +756,17 @@ simer.Data.Pheno <- function(filePhe = NULL, filePed = NULL, out = NULL, planPhe
     } else {
       # logging.log(" JOB NAME:", planPhe$job_name, "\n", verbose = verbose)
       pheDef <- sapply(planPhe$job_traits, function(plan) {
-        return(plan$definition)
+        return(unlist(plan$definition))
       })
       pheName <- sapply(planPhe$job_traits, function(plan) {
-        if (!is.null(plan$trait)) { return(plan$trait) }
-        if (!is.null(plan$environment)) { return(plan$environment) }
+        if (!is.null(unlist(plan$trait))) { return(unlist(plan$trait)) }
+        if (!is.null(unlist(plan$environment))) { return(unlist(plan$environment)) }
       })
       envName <- sapply(planPhe$job_traits, function(plan) {
-        return(plan$environment)
+        return(unlist(plan$environment))
       })
       pheCond <- lapply(planPhe$job_traits, function(plan) {
-        return(plan$range)
+        return(unlist(plan$range))
       })
       useFlag <- sapply(1:length(pheDef), function(i) {
         flag <- FALSE
@@ -786,21 +798,21 @@ simer.Data.Pheno <- function(filePhe = NULL, filePed = NULL, out = NULL, planPhe
       }
       
       # filter & select & arrange
-      if (length(planPhe$filter) > 0) {
-        filterRow <- with(pheList, eval(parse(text = planPhe$filter[1])))
+      if (length(unlist(planPhe$filter)) > 0) {
+        filterRow <- with(pheList, eval(parse(text = unlist(planPhe$filter))))
         filterRow[is.na(filterRow)] <- FALSE
         pheList <- pheList[filterRow, ] 
       }
-      if (length(planPhe$select) > 0) {
-        pheList <- pheList[, planPhe$select] 
+      if (length(unlist(planPhe$select)) > 0) {
+        pheList <- pheList[, unlist(planPhe$select)] 
       }
-      if (length(planPhe$arrange) > 0) {
-        if (length(planPhe$decreasing) > 0) {
-          decreasing <- planPhe$decreasing
+      if (length(unlist(planPhe$arrange)) > 0) {
+        if (length(unlist(planPhe$decreasing)) > 0) {
+          decreasing <- unlist(planPhe$decreasing)
         } else {
           decreasing <- FALSE
         }
-        orderCmd <- paste0("order(", paste0("pheList$", planPhe$arrange, collapse = ","), ",decreasing = decreasing)")
+        orderCmd <- paste0("order(", paste0("pheList$", unlist(planPhe$arrange), collapse = ","), ",decreasing = decreasing)")
         pheList <- pheList[eval(parse(text = orderCmd)), ]
       }
 
@@ -846,7 +858,7 @@ simer.Data.Pheno <- function(filePhe = NULL, filePed = NULL, out = NULL, planPhe
       }
       
       # check non-repeat record trait
-      hasRep <- planPhe$repeated_records
+      hasRep <- unlist(planPhe$repeated_records)
       if (!hasRep) {
         pheList <- pheList[!duplicated(pheList[, 1]), ]
       }
@@ -906,6 +918,7 @@ simer.Data.Pheno <- function(filePhe = NULL, filePed = NULL, out = NULL, planPhe
 #' @author Dong Yin
 #' 
 #' @param jsonList the list of environmental factor selection parameters.
+#' @param hiblupPath the path of HIBLUP software.
 #' @param header the header of file.
 #' @param sep the separator of file.
 #' @param ncpus the number of threads used, if NULL, (logical core number - 1) is automatically used.
@@ -919,7 +932,7 @@ simer.Data.Pheno <- function(filePhe = NULL, filePed = NULL, out = NULL, planPhe
 #' \item{$selection_index}{the selection index for all traits.}
 #' \item{$breeding_value_index}{the breeding value index for all traits.}
 #' \item{$quality_control_plan}{a list of parameters for data quality control.}
-#' \item{$analysis_plan}{a list of parameters for genetic evaluation.}
+#' \item{$breeding_plan}{a list of parameters for genetic evaluation.}
 #' }
 #' 
 #' @export
@@ -927,30 +940,31 @@ simer.Data.Pheno <- function(filePhe = NULL, filePed = NULL, out = NULL, planPhe
 #' @examples
 #' # Read JSON file
 #' jsonFile <- system.file("extdata", "04breeding_plan", "plan1.json", package = "simer")
-#' jsonList <- rjson::fromJSON(file = jsonFile)
+#' jsonList <- jsonlite::fromJSON(txt = jsonFile, simplifyVector = FALSE)
 #' 
 #' \dontrun{
 #' # It needs 'hiblup' solfware
 #' jsonList <- simer.Data.Env(jsonList = jsonList)
 #' }
-simer.Data.Env <- function(jsonList = NULL, header = TRUE, sep = '\t', ncpus = 10, verbose = TRUE) {
+simer.Data.Env <- function(jsonList = NULL, hiblupPath = '', header = TRUE, sep = '\t', ncpus = 10, verbose = TRUE) {
   t1 <- as.numeric(Sys.time())
   
-  planPhe <- jsonList$analysis_plan
-  auto_optim <- jsonList$auto_optimization
+  planPhe <- jsonList$breeding_plan
+  auto_optim <- unlist(jsonList$auto_optimization)
   
   for (i in 1:length(planPhe)) {
     # logging.log(" JOB NAME:", planPhe[[i]]$job_name, "\n", verbose = verbose)
-    filePhe <- planPhe[[i]]$sample_info
+    filePhe <- unlist(planPhe[[i]]$sample_info)
     pheno <- read.table(filePhe, header = header, sep = sep)
-    multrait <- planPhe[[i]]$multi_trait
-    randomRatio <- planPhe[[i]]$random_ratio
+    multrait <- unlist(planPhe[[i]]$multi_trait)
+    randomRatio <- unlist(planPhe[[i]]$random_ratio)
     planPhe[[i]]$random_ratio <- NULL
     nTrait <- length(planPhe[[i]]$job_traits)
     jsonListN <- jsonList
     if (multrait) {
       planPheN <- lapply(1:nTrait, function(j) { return(planPhe[[i]]) })
       for (j in 1:nTrait) {
+        planPheN[[j]]$job_name <- paste0(planPheN[[j]]$job_name, "_T", j)
         planPheN[[j]]$multi_trait <- FALSE
         planPheN[[j]]$job_traits <- planPheN[[j]]$job_traits[j]
       }
@@ -958,7 +972,7 @@ simer.Data.Env <- function(jsonList = NULL, header = TRUE, sep = '\t', ncpus = 1
       planPheN <- planPhe[i]
     }
     for (j in 1:nTrait) {
-      traits <- planPheN[[j]]$job_traits[[1]]$traits
+      traits <- unlist(planPheN[[j]]$job_traits[[1]]$traits)
       covariates <- unlist(planPheN[[j]]$job_traits[[1]]$covariates)
       fixedEffects <- unlist(planPheN[[j]]$job_traits[[1]]$fixed_effects)
       randomEffects <- unlist(planPheN[[j]]$job_traits[[1]]$random_effects)
@@ -971,7 +985,7 @@ simer.Data.Env <- function(jsonList = NULL, header = TRUE, sep = '\t', ncpus = 1
       lapply(covariates, function(col) {  mode(finalPhe[, col]) <<- "numeric" })
       lapply(fixedEffects, function(col) {  mode(finalPhe[, col]) <<- "character" })
       # remove column of one level or full levels
-      finalPhe <- checkEnv(finalPhe, c(covariates, fixedEffects, randomEffects))
+      finalPhe <- checkEnv(finalPhe, c(covariates, fixedEffects, randomEffects), verbose = verbose)
       covariates <- covariates[covariates %in% names(finalPhe)]
       fixedEffects <- fixedEffects[fixedEffects %in% names(finalPhe)]
       randomEffects <- randomEffects[randomEffects %in% names(finalPhe)]
@@ -999,16 +1013,27 @@ simer.Data.Env <- function(jsonList = NULL, header = TRUE, sep = '\t', ncpus = 1
           planPheN[[j]]$job_traits[[1]]$fixed_effects <- fixedEffects
         }
         
-        jsonListN$analysis_plan <- list(planPheN[[j]])
+        jsonListN$breeding_plan <- list(planPheN[[j]])
         # select random effect which ratio less than threshold
-        gebv <- simer.Data.cHIBLUP(jsonList = jsonListN, ncpus = ncpus, verbose = verbose)
+        gebv <- simer.Data.cHIBLUP(jsonList = jsonListN, hiblupPath = hiblupPath, ncpus = ncpus, verbose = verbose)
         vc <- gebv[[1]]$varList[[1]]
-        randomEffectRatio <- vc[1:length(randomEffects)] / sum(vc)
+        randIdx <- 1:length(randomEffects)
+        if (unlist(planPhe[[i]]$repeated_records)) {
+          randIdx <- randIdx + 1
+        }
+        randomEffectRatio <- vc[randIdx] / sum(vc)
         randomEffects <- randomEffects[randomEffectRatio > randomRatio]
-        # reset covariates, fixed effects, and random effects
+        if (length(covariates) == 1) { covariates <- I(covariates)  }
+        if (length(fixedEffects) == 1) { fixedEffects <- I(fixedEffects)  }
+        if (length(randomEffects) == 1) { randomEffects <- I(randomEffects)  }
         planPhe[[i]]$job_traits[[j]]$covariates <- covariates
         planPhe[[i]]$job_traits[[j]]$fixed_effects <- fixedEffects
         planPhe[[i]]$job_traits[[j]]$random_effects <- randomEffects
+      }
+      
+      planPhe[[i]]$vc_vars <- paste0(planPhe[[i]]$job_name, ".vars")
+      if (unlist(planPhe[[i]]$multi_trait)) {
+        planPhe[[i]]$vc_covars <- paste0(planPhe[[i]]$job_name, ".covars")
       }
       
       envFormula <- c(
@@ -1023,7 +1048,7 @@ simer.Data.Env <- function(jsonList = NULL, header = TRUE, sep = '\t', ncpus = 1
     }
   }
   
-  jsonList$analysis_plan <- planPhe
+  jsonList$breeding_plan <- planPhe
   t2 <- as.numeric(Sys.time())
   logging.log(" Model optimization is Done within", format_time(t2 - t1), "\n", verbose = verbose)
   return(jsonList)
@@ -1039,6 +1064,7 @@ simer.Data.Env <- function(jsonList = NULL, header = TRUE, sep = '\t', ncpus = 1
 #' @author Dong Yin
 #' 
 #' @param jsonList the list of genetic evaluation parameters.
+#' @param hiblupPath the path of HIBLUP software.
 #' @param mode 'A' or 'AD', Additive effect model or Additive and Dominance model.
 #' @param vc.method default is 'AI', the method of calculating variance components in HIBLUP software.
 #' @param ncpus the number of threads used, if NULL, (logical core number - 1) is automatically used.
@@ -1058,29 +1084,30 @@ simer.Data.Env <- function(jsonList = NULL, header = TRUE, sep = '\t', ncpus = 1
 #' @examples
 #' # Read JSON file
 #' jsonFile <- system.file("extdata", "04breeding_plan", "plan1.json", package = "simer")
-#' jsonList <- rjson::fromJSON(file = jsonFile)
+#' jsonList <- jsonlite::fromJSON(txt = jsonFile, simplifyVector = FALSE)
 #' 
 #' \dontrun{
 #' # It needs 'hiblup' software
 #' gebvs <- simer.Data.cHIBLUP(jsonList = jsonList)
 #' }
-simer.Data.cHIBLUP <- function(jsonList = NULL, mode = "A", vc.method = "AI", ncpus = 10, verbose = TRUE) {
+simer.Data.cHIBLUP <- function(jsonList = NULL, hiblupPath = '', mode = "A", vc.method = "AI", ncpus = 10, verbose = TRUE) {
   t1 <- as.numeric(Sys.time())
   
-  genoPath <- jsonList$genotype
+  genoPath <- unlist(jsonList$genotype)
+  if (is.null(genoPath)) {  genoPath <- "" }
   genoFiles <- list.files(genoPath)
   fileBed <- grep(pattern = "bed", genoFiles, value = TRUE)
   fileBed <- file.path(genoPath, fileBed)
   fileBed <- substr(fileBed, 1, nchar(fileBed) - 4)
-  filePed <- jsonList$pedigree
-  planPhe <- jsonList$analysis_plan
+  filePed <- unlist(jsonList$pedigree)
+  planPhe <- jsonList$breeding_plan
   
   gebvs <- NULL
   for (i in 1:length(planPhe)) {
     # logging.log(" JOB NAME:", planPhe[[i]]$job_name, "\n", verbose = verbose)
-    filePhe <- planPhe[[i]]$sample_info
+    filePhe <- unlist(planPhe[[i]]$sample_info)
     pheno <- read.table(filePhe, header = TRUE)
-    traits <- sapply(planPhe[[i]]$job_traits, function(x) return(x$trait))
+    traits <- sapply(planPhe[[i]]$job_traits, function(x) return(unlist(x$trait)))
     covariates <- unique(c(unlist(sapply(planPhe[[i]]$job_traits, function(x) {
       return(unlist(c(x$covariates)))
     }))))
@@ -1100,7 +1127,7 @@ simer.Data.cHIBLUP <- function(jsonList = NULL, mode = "A", vc.method = "AI", nc
     lapply(covariates, function(col) {  mode(finalPhe[, col]) <<- "numeric" })
     lapply(fixedEffects, function(col) {  mode(finalPhe[, col]) <<- "character" })
     # remove column of one level or full levels
-    finalPhe <- checkEnv(finalPhe, c(covariates, fixedEffects, randomEffects))
+    finalPhe <- checkEnv(finalPhe, c(covariates, fixedEffects, randomEffects), verbose = verbose)
     # show data information
     logging.log(" Data Summary:\n", verbose = verbose)
     logging.print(summary(finalPhe), verbose = verbose)
@@ -1120,11 +1147,14 @@ simer.Data.cHIBLUP <- function(jsonList = NULL, mode = "A", vc.method = "AI", nc
     randomEffectsCmd <- lapply(planPhe[[i]]$job_traits, function(x) {
         x$random_effects <- x$random_effects[x$random_effects %in% names(finalPhe)]
         env <- paste0(match(x$random_effects, names(pheno)), collapse=',')
+        if (unlist(planPhe[[i]]$repeated_records)) {
+          env <- paste0(c(1, env), collapse = ',')
+        }
         if (env == "") return(0)
         return(env)
     })
     phenoCmd <- match(traits, names(pheno))
-    if (!planPhe[[i]]$multi_trait) {
+    if (!unlist(planPhe[[i]]$multi_trait)) {
       covariatesCmd <- covariatesCmd[[1]]
       fixedEffectsCmd <- fixedEffectsCmd[[1]]
       randomEffectsCmd <- randomEffectsCmd[[1]]
@@ -1135,11 +1165,11 @@ simer.Data.cHIBLUP <- function(jsonList = NULL, mode = "A", vc.method = "AI", nc
     fixedEffectsCmd <- paste(fixedEffectsCmd, collapse=' ')
     randomEffectsCmd <- paste(randomEffectsCmd, collapse=' ')
     phenoCmd <- paste(phenoCmd, collapse=' ')
-    nTraitCmd <- ifelse(planPhe[[i]]$multi_trait, "--multi-trait", "--single-trait")
-    out <- paste(traits, collapse = '_')
+    nTraitCmd <- ifelse(unlist(planPhe[[i]]$multi_trait), "--multi-trait", "--single-trait")
+    out <- planPhe[[i]]$job_name
 
     completeCmd <- 
-      paste("hiblup", nTraitCmd,
+      paste(paste0(hiblupPath, "hiblup"), nTraitCmd,
         paste("--pheno", filePhe),
         paste("--pheno-pos", phenoCmd),
         paste("--dcovar", fixedEffectsCmd),
@@ -1158,10 +1188,10 @@ simer.Data.cHIBLUP <- function(jsonList = NULL, mode = "A", vc.method = "AI", nc
     gebv <- NULL
     
     randList <- lapply(traits, function(trait) {
-      if (planPhe[[i]]$multi_trait) {
+      if (unlist(planPhe[[i]]$multi_trait)) {
         randFile <- paste0(out, ".", trait, ".rand")
       } else {
-        randFile <- paste0(trait, ".rand")
+        randFile <- paste0(out, ".rand")
       }
       rand <- read.table(randFile, header = TRUE)
       return(rand[, c(1, ncol(rand) - 1)])
@@ -1172,7 +1202,7 @@ simer.Data.cHIBLUP <- function(jsonList = NULL, mode = "A", vc.method = "AI", nc
     varFile <- paste0(out, ".vars")
     vars <- read.table(varFile, header = TRUE)
     varList <- lapply(traits, function(trait) {
-      if (planPhe[[i]]$multi_trait) {
+      if (unlist(planPhe[[i]]$multi_trait)) {
         return(vars[grep(pattern = trait, vars[, 1]), 2])
       } else {
         return(vars[, 2])
@@ -1183,7 +1213,7 @@ simer.Data.cHIBLUP <- function(jsonList = NULL, mode = "A", vc.method = "AI", nc
     logging.log(" The variance components are: (R, G, E)\n", verbose = verbose)
     logging.print(gebv$varList, verbose = verbose)
 
-    if (planPhe[[i]]$multi_trait) {
+    if (unlist(planPhe[[i]]$multi_trait)) {
       covarFile <- paste0(out, ".covars")
       covars <- read.table(covarFile, header = TRUE)
       covA <- corA <- matrix(0, length(traits), length(traits))
@@ -1225,6 +1255,7 @@ simer.Data.cHIBLUP <- function(jsonList = NULL, mode = "A", vc.method = "AI", nc
 #' @author Dong Yin
 #' 
 #' @param jsonList the list of selection index construction parameters.
+#' @param hiblupPath the path of HIBLUP software.
 #' @param ncpus the number of threads used, if NULL, (logical core number - 1) is automatically used.
 #' @param verbose whether to print detail.
 #'
@@ -1236,7 +1267,7 @@ simer.Data.cHIBLUP <- function(jsonList = NULL, mode = "A", vc.method = "AI", nc
 #' \item{$selection_index}{the selection index for all traits.}
 #' \item{$breeding_value_index}{the breeding value index for all traits.}
 #' \item{$quality_control_plan}{a list of parameters for data quality control.}
-#' \item{$analysis_plan}{a list of parameters for genetic evaluation.}
+#' \item{$breeding_plan}{a list of parameters for genetic evaluation.}
 #' }
 #' 
 #' @export
@@ -1246,23 +1277,25 @@ simer.Data.cHIBLUP <- function(jsonList = NULL, mode = "A", vc.method = "AI", nc
 #' @examples
 #' # Read JSON file
 #' jsonFile <- system.file("extdata", "04breeding_plan", "plan1.json", package = "simer")
-#' jsonList <- rjson::fromJSON(file = jsonFile)
+#' jsonList <- jsonlite::fromJSON(txt = jsonFile, simplifyVector = FALSE)
 #' 
 #' \dontrun{
 #' # It needs 'hiblup' software
 #' jsonList <- simer.Data.SELIND(jsonList = jsonList)
 #' }
-simer.Data.SELIND <- function(jsonList = NULL, ncpus = 10, verbose = TRUE) {
+simer.Data.SELIND <- function(jsonList = NULL, hiblupPath = '', ncpus = 10, verbose = TRUE) {
   t1 <- as.numeric(Sys.time())
   
-  BVIndex <- jsonList$breeding_value_index
-  planPhe <- jsonList$analysis_plan
-  auto_optim <- jsonList$auto_optimization
+  BVIndex <- unlist(jsonList$breeding_value_index)
+  BVIndex <- gsub(pattern = "\\-", replacement = "+ -", x = BVIndex)
+  planPhe <- jsonList$breeding_plan
+  auto_optim <- unlist(jsonList$auto_optimization)
   
   str1 <- unlist(strsplit(BVIndex, split = c("\\+|\\*")))
-  str1 <- gsub("^\\s+|\\s+$", "", str1)
-  strIsNA <- is.na(suppressWarnings(as.numeric(str1)))
-  BVWeight <- as.numeric(str1[!strIsNA])
+  str1 <- gsub(pattern = "\\s+", replacement = "", x = str1)
+  str1 <- str1[nchar(str1) != 0]
+  strIsNA <- which(is.na(suppressWarnings(as.numeric(str1))))
+  BVWeight <- as.numeric(str1[strIsNA - 1])
   names(BVWeight) <- str1[strIsNA]
   
   covPList <- NULL
@@ -1270,41 +1303,47 @@ simer.Data.SELIND <- function(jsonList = NULL, ncpus = 10, verbose = TRUE) {
   pheNames <- NULL
   usePhes <- NULL
   for (i in 1:length(planPhe)) {
-    filePhe <- planPhe[[i]]$sample_info
+    filePhe <- unlist(planPhe[[i]]$sample_info)
     pheno <- read.table(filePhe, header = TRUE)
     if (is.null(pheno$gen)) {
-      stop("Generation index is necessary!")
+      pheno$gen <- 1
     }
     pheno <- pheno[pheno$gen == max(pheno$gen), ]
     pheName <- sapply(planPhe[[i]]$job_traits, function(x) {
-      return(x$trait)
+      return(unlist(x$traits))
     })
     pheNames <- c(pheNames, pheName)
     if (!all(pheName %in% names(BVWeight))) {
       stop(pheName[!(pheName %in% names(BVWeight))], " are not in the 'BVIndex'!")
     }
-    if (planPhe[[i]]$repeated_records) {
+    if (unlist(planPhe[[i]]$repeated_records)) {
       simer.mean <- function(x) { return(mean(x, na.rm = TRUE)) }
       usePhe <- sapply(pheName, function(name) {
         return(tapply(pheno[, name], as.factor(pheno[, 1]), FUN = simer.mean))
       })
+      usePhe <- data.frame(rownames(usePhe), usePhe)
+      names(usePhe)[1] <- names(pheno)[1]
     } else {
-      usePhe <- pheno[, pheName, drop = FALSE]
+      usePhe <- pheno[, c(names(pheno)[1], pheName), drop = FALSE]
     }
     if (is.null(usePhes)) {
       usePhes <- usePhe
     } else {
-      usePhes <- cbind(usePhes, usePhe)
+      usePhes <- merge(x = usePhes, y = usePhe, by = 1, all = TRUE)
     }
+    usePhe <- usePhe[, -1, drop = FALSE]
     covP <- var(usePhe, na.rm = TRUE)
     covPList[[i]] <- covP
   }
   
+  usePhes <- usePhes[, -1]
+  usePhes[is.na(usePhes)] <- 0
+  
   if (auto_optim) {
-    gebvs <- simer.Data.cHIBLUP(jsonList = jsonList, ncpus = ncpus, verbose = verbose)
+    gebvs <- simer.Data.cHIBLUP(jsonList = jsonList, hiblupPath = hiblupPath, ncpus = ncpus, verbose = verbose)
     
     for (i in 1:length(planPhe)) {
-      if (planPhe[[i]]$multi_trait) {
+      if (unlist(planPhe[[i]]$multi_trait)) {
         covAList[[i]] <- gebvs[[i]]$covA
       } else {
         covAList[[i]] <- gebvs[[i]]$varList[[1]][1]
@@ -1325,32 +1364,42 @@ simer.Data.SELIND <- function(jsonList = NULL, ncpus = 10, verbose = TRUE) {
     BVWeight <- BVWeight[match(pheNames, names(BVWeight))]
     b <- iP %*% A %*% BVWeight
     b <- round(as.vector(b), digits = 2)
+    names(b) <- pheNames
   
   } else {
-    if (is.null(jsonList$selection_index)) {
+    if (is.null(unlist(jsonList$selection_index))) {
       stop("A selection index is necessary!")
     }
-    str1 <- unlist(strsplit(jsonList$selection_index, split = c("\\+|\\*")))
-    str1 <- gsub("^\\s+|\\s+$", "", str1)
-    strIsNA <- is.na(suppressWarnings(as.numeric(str1)))
-    b <- as.numeric(str1[!strIsNA])
+    selIndex <- unlist(jsonList$selection_index)
+    selIndex <- gsub(pattern = "\\-", replacement = "+ -", x = selIndex)
+    str1 <- unlist(strsplit(selIndex, split = c("\\+|\\*")))
+    str1 <- gsub(pattern = "\\s+", replacement = "", x = str1)
+    strIsNA <- which(is.na(suppressWarnings(as.numeric(str1))))
+    b <- as.numeric(str1[strIsNA - 1])
     names(b) <- str1[strIsNA]
+    if (any(sort(pheNames) != sort(names(b)))) {
+      stop("Trait names should be consistent between planPhe and selection_index!")
+    }
+    b <- b[match(pheNames, b)]
   } 
   
-  selIndex <- paste(paste(b, names(BVWeight), sep = "*"), collapse = " + ")
+  signSet <- c(" - ", " + ", " + ")
+  signUse <- signSet[sign(b) + 2]
+  selIndex <- paste(abs(b), names(b), sep = " * ")
+  selIndex <- paste0(signUse, selIndex, collapse = "")
+  selIndex <- paste0("100", selIndex)
   
   # genetic progress
   scores <- sort(as.matrix(usePhes) %*% b, decreasing = TRUE)
   geneticProgress <- round(mean(scores[1:(0.1*length(scores))]) - mean(scores), digits = 2)
-  selIndex <- paste0(selIndex, " = ", geneticProgress)
   
   logging.log(" *********************************************************\n",
-                "General Selection Index and Genetic Progress is:\n", 
-                selIndex, "\n",
+                "General Selection Index ~ Genetic Progress is:\n", 
+                paste0(selIndex, " ~ ", geneticProgress), "\n",
                 "*********************************************************\n", verbose = verbose)
 
   jsonList$selection_index <- selIndex
-  jsonList$breeding_value_index <- NULL
+  jsonList$genetic_progress <- geneticProgress
   t2 <- as.numeric(Sys.time())
   logging.log(" Selection Index Construction is Done within", format_time(t2 - t1), "\n", verbose = verbose)
   return(jsonList)
@@ -1366,6 +1415,7 @@ simer.Data.SELIND <- function(jsonList = NULL, ncpus = 10, verbose = TRUE) {
 #' @author Dong Yin
 #' 
 #' @param jsonFile the path of JSON file.
+#' @param hiblupPath the path of HIBLUP software.
 #' @param out the prefix of output files.
 #' @param dataQC whether to make data quality control.
 #' @param buildModel whether to build EBV model.
@@ -1381,7 +1431,7 @@ simer.Data.SELIND <- function(jsonList = NULL, ncpus = 10, verbose = TRUE) {
 #' \item{$selection_index}{the selection index for all traits.}
 #' \item{$breeding_value_index}{the breeding value index for all traits.}
 #' \item{$quality_control_plan}{a list of parameters for data quality control.}
-#' \item{$analysis_plan}{a list of parameters for genetic evaluation.}
+#' \item{$breeding_plan}{a list of parameters for genetic evaluation.}
 #' }
 #' 
 #' @export
@@ -1394,28 +1444,88 @@ simer.Data.SELIND <- function(jsonList = NULL, ncpus = 10, verbose = TRUE) {
 #' # It needs 'plink' and 'hiblup' software
 #' jsonList <- simer.Data.Json(jsonFile = jsonFile)
 #' }
-simer.Data.Json <- function(jsonFile, out = "simer.qc", dataQC = TRUE, buildModel = TRUE, buildIndex = TRUE, ncpus = 10, verbose = TRUE) {
+simer.Data.Json <- function(jsonFile, hiblupPath = '', out = "simer.qc", dataQC = TRUE, buildModel = TRUE, buildIndex = TRUE, ncpus = 10, verbose = TRUE) {
   
-  jsonList <- rjson::fromJSON(file = jsonFile)
+  newJsonFile <- paste0(out, ".model.json")
+  jsonList <- jsonlite::fromJSON(txt = jsonFile, simplifyVector = FALSE)
+  if (length(jsonList$threads) != 0) { ncpus <- jsonList$threads  }
+  dataPath <- dirname(jsonFile)
   
+  # genotype path check
+  genoPath <- unlist(jsonList$genotype)
+  if (length(genoPath) != 0) {
+    if (!dir.exists(genoPath)) { 
+      genoPath <- file.path(dataPath, genoPath)
+      if (!dir.exists(genoPath)) {
+        stop("Please check the genotype path!")
+      }
+      jsonList$genotype[[1]] <- genoPath
+    }
+  }
+
+  # pedigree path check
+  filePed <- unlist(jsonList$pedigree)
+  if (length(filePed) != 0) {
+    if (!file.exists(filePed)) { 
+      filePed <- file.path(dataPath, filePed)
+      if (!file.exists(filePed)) {
+        stop("Please check the pedigree path!")
+      }
+      jsonList$pedigree[[1]] <- filePed
+    }
+  }
+
+  # phenotype path check
+  for (i in 1:length(jsonList$quality_control_plan$phenotype_quality_control)) {
+    filePhe <- unlist(jsonList$quality_control_plan$phenotype_quality_control[[i]]$sample_info)
+    if (length(filePhe) != 0) {
+      if(!file.exists(filePhe)) {
+        filePhe <- file.path(dataPath, filePhe)
+        if (!file.exists(filePhe)) {
+          stop("Please check the phenotype path!")
+        }
+        jsonList$quality_control_plan$phenotype_quality_control[[i]]$sample_info[[1]] <- filePhe
+      }
+    }
+  }
+
+  # breeding plan path check
+  for (i in 1:length(jsonList$breeding_plan)) {
+    filePhe <- unlist(jsonList$breeding_plan[[i]]$sample_info)
+    if (length(filePhe) != 0) {
+      if(!file.exists(filePhe)) {
+        filePhe <- file.path(dataPath, filePhe)
+        if (!file.exists(filePhe)) {
+          stop("Please check the phenotype path!")
+        }
+        jsonList$breeding_plan[[i]]$sample_info[[1]] <- filePhe
+      }
+    }
+  }
+
   ## step 1. data quality control
   if (dataQC) {
     jsonList <- simer.Data(jsonList = jsonList, out = out, ncpus = ncpus, verbose = verbose)
   }
+  newJson <- jsonlite::toJSON(jsonList, pretty = TRUE, auto_unbox = TRUE)
+  if (verbose) {
+    cat(newJson, file = newJsonFile)
+  }
   
   ## step 2. find the best environmental factors for EBV model
   if (buildModel) {
-    jsonList <- simer.Data.Env(jsonList = jsonList, ncpus = ncpus, verbose = verbose)
+    jsonList <- simer.Data.Env(jsonList = jsonList, hiblupPath = hiblupPath, ncpus = ncpus, verbose = verbose)
   }
-  newJsonFile <- paste0(out, ".model.json")
-  newJson <- rjson::toJSON(jsonList)
-  
+  newJson <- jsonlite::toJSON(jsonList, pretty = TRUE, auto_unbox = TRUE)
+  if (verbose) {
+    cat(newJson, file = newJsonFile)
+  }
+
   ## step 3. construct selection index
   if (buildIndex) {
-    jsonList <- simer.Data.SELIND(jsonList = jsonList, ncpus = ncpus, verbose = verbose)
+    jsonList <- simer.Data.SELIND(jsonList = jsonList, hiblupPath = hiblupPath, ncpus = ncpus, verbose = verbose)
   }
-  newJson <- rjson::toJSON(jsonList)
-  
+  newJson <- jsonlite::toJSON(jsonList, pretty = TRUE, auto_unbox = TRUE)
   if (verbose) {
     cat(newJson, file = newJsonFile)
   }
@@ -1434,6 +1544,7 @@ simer.Data.Json <- function(jsonFile, out = "simer.qc", dataQC = TRUE, buildMode
 #' 
 #' @param data data needing check.
 #' @param envName the environmental factor name within the data.
+#' @param verbose whether to print detail.
 #' 
 #' @return data without environmental factors of wrong level.
 #' 
@@ -1443,7 +1554,7 @@ simer.Data.Json <- function(jsonFile, out = "simer.qc", dataQC = TRUE, buildMode
 #' data <- data.frame(a = c(1, 1, 2), b = c(2, 2, 3), c = c(3, 3, 4))
 #' envName <- c("a", "b", "c")
 #' data <- checkEnv(data = data, envName = envName)
-checkEnv <- function(data, envName) {
+checkEnv <- function(data, envName, verbose = TRUE) {
   if (is.numeric(envName)) {
     envName <- names(data)[envName]
   }
@@ -1459,7 +1570,7 @@ checkEnv <- function(data, envName) {
     }
   }
   if (length(drop) > 0) {
-    warning(paste(names(data)[drop], collapse=', '), ' has been remove because of its one or full levels!')
+    logging.log(paste(names(data)[drop], collapse=', '), ' has been remove because of its one or full levels!\n', verbose = verbose)
     data <- data[, -drop, drop = FALSE]
   }
   return(data)
@@ -1488,12 +1599,14 @@ checkEnv <- function(data, envName) {
 #' @export
 #' 
 #' @examples
+#' \donttest{
 #' # Generate bigmat and map
 #' bigmat <- as.big.matrix(matrix(1:6, 3, 2))
 #' map <- generate.map(pop.marker = 3)
 #' 
 #' # Data converting
 #' simer.Data.MVP2Bfile(bigmat, map, out=tempfile("outfile"))
+#' }
 simer.Data.MVP2Bfile <- function(bigmat, map, pheno = NULL, out = 'simer', threads = 10, verbose = TRUE) {
   t1 <- as.numeric(Sys.time())
   
@@ -1511,7 +1624,7 @@ simer.Data.MVP2Bfile <- function(bigmat, map, pheno = NULL, out = 'simer', threa
   #  6. Phenotype value ('1' = control, '2' = case, '-9'/'0'/non-numeric = missing data if case/control)
   
   if (is.null(pheno)) {
-    ind <- paste0("ind", 1:ncol(bigmat))
+    ind <- seq_len(ncol(bigmat))
     sir <- rep(0, ncol(bigmat))
     dam <- rep(0, ncol(bigmat))
     sex <- rep(0, ncol(bigmat))
@@ -1530,10 +1643,10 @@ simer.Data.MVP2Bfile <- function(bigmat, map, pheno = NULL, out = 'simer', threa
       message("Only the first phenotype is written to the fam file, and the remaining phenotypes are ignored.")
     }
     ind <- pheno[, 1]
-    sir <- pheno[, 5]
-    dam <- pheno[, 6]
-    sex <- pheno[, 7]
-    pheno <- pheno[, 8]
+    sir <- pheno[, 2]
+    dam <- pheno[, 3]
+    sex <- pheno[, 4]
+    pheno <- pheno[, 5]
   }
   
   fam <- cbind(ind, ind, sir, dam, sex, pheno)
@@ -1578,16 +1691,18 @@ simer.Data.MVP2Bfile <- function(bigmat, map, pheno = NULL, out = 'simer', threa
 #' @export
 #' 
 #' @examples
+#' \donttest{
 #' # Get bfile path
 #' bfilePath <- file.path(system.file("extdata", "02plinkb", package = "simer"), "demo")
 #' 
 #' # Data converting
 #' simer.Data.Bfile2MVP(bfilePath, tempfile("outfile"))
+#' }
 simer.Data.Bfile2MVP <- function(bfile, out = 'simer', maxLine = 1e4, priority = 'speed', type.geno = 'char', threads = 10, verbose = TRUE) {
   t1 <- as.numeric(Sys.time())
-  bim_file <- normalizePath(paste0(bfile, '.bim'), mustWork = TRUE)
-  fam_file <- normalizePath(paste0(bfile, '.fam'), mustWork = TRUE)
-  bed_file <- normalizePath(paste0(bfile, '.bed'), mustWork = TRUE)
+  bim_file <- normalizePath(paste0(bfile, '.bim'), winslash = "/", mustWork = TRUE)
+  fam_file <- normalizePath(paste0(bfile, '.fam'), winslash = "/", mustWork = TRUE)
+  bed_file <- normalizePath(paste0(bfile, '.bed'), winslash = "/", mustWork = TRUE)
   # check old file
   backingfile <- paste0(basename(out), ".geno.bin")
   descriptorfile <- paste0(basename(out), ".geno.desc")
@@ -1617,6 +1732,7 @@ simer.Data.Bfile2MVP <- function(bfile, out = 'simer', maxLine = 1e4, priority =
   
   if (priority == "speed") { maxLine <- -1 }
   read_bfile(bed_file = bed_file, pBigMat = bigmat@address, maxLine = maxLine, threads = threads, verbose = verbose)
+  rm(bigmat); gc();
   t2 <- as.numeric(Sys.time())
   logging.log("Preparation for GENOTYPE data is done within", format_time(t2 - t1), "\n", verbose = verbose)
   return(invisible(c(m, n)))
@@ -1631,11 +1747,11 @@ simer.Data.Bfile2MVP <- function(bfile, out = 'simer', maxLine = 1e4, priority =
 #'
 #' @author Haohao Zhang and Dong Yin
 #' 
-#' @param map the name of map file or map object(data.frame or matrix)
-#' @param out the name of output file
-#' @param cols selected columns
-#' @param header whether the file contains header
-#' @param sep seperator of the file
+#' @param map the name of map file or map object(data.frame or matrix).
+#' @param out the name of output file.
+#' @param cols selected columns.
+#' @param header whether the file contains header.
+#' @param sep seperator of the file.
 #' @param verbose whether to print detail.
 #' 
 #' @return 
@@ -1669,4 +1785,75 @@ simer.Data.Map <- function(map, out = 'simer', cols = 1:5, header = TRUE, sep = 
   t2 <- as.numeric(Sys.time())
   logging.log("Preparation for MAP data is done within", format_time(t2 - t1), "\n", verbose = verbose)
   return(nrow(map))
+}
+
+#' simer.Data.EMMA: To construct EMMA kinship matrix
+#' 
+#' constructing EMMA kinship matrix.
+#' 
+#' Build date: Apr 19, 2023
+#' Last update: Apr 19, 2023
+#'
+#' @author Haohao Zhang and Dong Yin
+#' 
+#' @param fileKin kinship that represents relationship among individuals, n * n matrix, n is sample size.
+#' @param fileMVP prefix for mvp format files.
+#' @param out prefix of output file name.
+#' @param method only"EMMA" method for now.
+#' @param sep seperator for Kinship file.
+#' @param threads the number of cpu.
+#' @param verbose whether to print detail.
+#' 
+#' @return 
+#' Output file:
+#' <out>.kin.bin
+#' <out>.kin.desc
+#' 
+#' @export
+#' 
+#' @examples
+#' \donttest{
+#' # Get the prefix of genotype data
+#' fileMVP <- system.file("extdata", "01bigmemory", "demo", package = "simer")
+#' 
+#' # Check map data
+#' simer.Data.Kin(fileKin = TRUE, fileMVP = fileMVP, out = tempfile("outfile"))
+#' }
+simer.Data.Kin <- function(fileKin = TRUE, fileMVP = 'simer', out = NULL, method = 'EMMA', sep = '\t', threads = 10, verbose = TRUE) {
+  if (is.null(out)) out <- fileMVP
+  
+  # check old file
+  backingfile <- paste0(basename(out), ".kin.bin")
+  descriptorfile <- paste0(basename(out), ".kin.desc")
+  remove_bigmatrix(out, desc_suffix = ".kin.desc", bin_suffix = ".kin.bin")
+  
+  if (is.character(fileKin)) {
+    myKin <- read.big.matrix(fileKin, header = FALSE, type = 'double', sep = sep)
+  } else if (fileKin == TRUE) {
+    geno <- attach.big.matrix(paste0(fileMVP, ".geno.desc"))
+    if (method == "EMMA") {
+      logging.log("Calculate KINSHIP using EMMA method...", "\n", verbose = verbose)
+      myKin <- emma_kinship(geno@address, threads, verbose)
+    } else {
+      stop("Please input a correct method!")
+    }
+  } else {
+    stop("ERROR: The value of fileKin is invalid.")
+  }
+  
+  # define bigmat
+  Kinship <- filebacked.big.matrix(
+    nrow = nrow(myKin),
+    ncol = ncol(myKin),
+    type = 'double',
+    backingfile = backingfile,
+    backingpath = dirname(out),
+    descriptorfile = descriptorfile,
+    dimnames = c(NULL, NULL)
+  )
+  
+  Kinship[, ] <- myKin[, ]
+  flush(Kinship)
+  logging.log("Preparation for Kinship matrix is done!", "\n", verbose = verbose)
+  return(Kinship)
 }

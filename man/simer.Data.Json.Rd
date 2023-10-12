@@ -6,6 +6,7 @@
 \usage{
 simer.Data.Json(
   jsonFile,
+  hiblupPath = "",
   out = "simer.qc",
   dataQC = TRUE,
   buildModel = TRUE,
@@ -16,6 +17,8 @@ simer.Data.Json(
 }
 \arguments{
 \item{jsonFile}{the path of JSON file.}
+
+\item{hiblupPath}{the path of HIBLUP software.}
 
 \item{out}{the prefix of output files.}
 
@@ -37,7 +40,7 @@ the function returns a list containing
 \item{$selection_index}{the selection index for all traits.}
 \item{$breeding_value_index}{the breeding value index for all traits.}
 \item{$quality_control_plan}{a list of parameters for data quality control.}
-\item{$analysis_plan}{a list of parameters for genetic evaluation.}
+\item{$breeding_plan}{a list of parameters for genetic evaluation.}
 }
 }
 \description{

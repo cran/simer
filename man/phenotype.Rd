@@ -19,6 +19,7 @@ the function returns a list containing
 \item{$pheno$pop.rep}{the repeated times of repeated records.}
 \item{$pheno$pop.rep.bal}{whether repeated records are balanced.}
 \item{$pheno$pop.env}{a list of environmental factors setting.}
+\item{$pheno$phe.type}{a list of phenotype types.}
 \item{$pheno$phe.model}{a list of genetic model of phenotype such as "T1 = A + E".}
 \item{$pheno$phe.h2A}{a list of additive heritability.}
 \item{$pheno$phe.h2D}{a list of dominant heritability.}
@@ -41,6 +42,7 @@ Build date: Nov 14, 2018
 Last update: Apr 28, 2022
 }
 \examples{
+\donttest{
 # Prepare environmental factor list
 pop.env <- list(
   F1 = list( # fixed effect 1
@@ -62,7 +64,7 @@ pop.env <- list(
 )
 
 # Generate genotype simulation parameters
-SP <- param.annot(qtn.num = list(tr1 = 10, tr2 = 10),
+SP <- param.annot(qtn.num = list(tr1 = c(2, 8), tr2 = 10),
                   qtn.model = "A + D + A:D")
 # Generate annotation simulation parameters
 SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
@@ -73,11 +75,15 @@ SP <- param.pheno(
   pop.rep = 2, # 2 repeated record
   pop.rep.bal = TRUE, # balanced repeated record
   pop.env = pop.env,
-  phe.var = list(tr1 = 100, tr2 = 100),
+  phe.type = list(
+    tr1 = "continuous",
+    tr2 = list(case = 0.01, control = 0.99)
+  ),
   phe.model = list(
     tr1 = "T1 = A + D + A:D + F1 + F2 + C1 + R1 + A:F1 + E",
     tr2 = "T2 = A + D + A:D + F1 + F2 + C1 + R1 + A:F1 + E"
-  )
+  ),
+  phe.var = list(tr1 = 100, tr2 = 100)
 )
 
 # Run annotation simulation
@@ -86,6 +92,7 @@ SP <- annotation(SP)
 SP <- genotype(SP)
 # Run phenotype simulation
 SP <- phenotype(SP)
+}
 }
 \references{
 Kao C and Zeng Z (2002) <https://www.genetics.org/content/160/3/1243.long>

@@ -17,7 +17,7 @@ mate.4waycro(SP, ncpus = 0, verbose = TRUE)
 the function returns a list containing
 \describe{
 \item{$reprod$pop.gen}{the generations of simulated population.}
-\item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+\item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
 \item{$reprod$sex.rate}{the sex ratio of simulated population.}
 \item{$reprod$prog}{the progeny number of an individual.}
 \item{$geno}{a list of genotype simulation parameters.}
@@ -32,6 +32,7 @@ Build date: Apr 11, 2022
 Last update: Apr 30, 2022
 }
 \examples{
+\donttest{
 # Generate annotation simulation parameters
 SP <- param.annot(qtn.num = list(tr1 = 10))
 # Generate genotype simulation parameters
@@ -39,7 +40,7 @@ SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 # Generate phenotype simulation parameters
 SP <- param.pheno(SP = SP, pop.ind = 100)
 # Generate selection parameters
-SP <- param.sel(SP = SP, sel.single = "comb")
+SP <- param.sel(SP = SP, sel.single = "ind")
 # Generate reproduction parameters
 SP <- param.reprod(SP = SP, reprod.way = "4waycro")
 
@@ -55,6 +56,7 @@ SP$pheno$pop$gen1$sex <- rep(c(1, 2, 1, 2), c(25, 25, 25, 25))
 SP <- selects(SP)
 # Run four-way cross
 SP <- mate.4waycro(SP)
+}
 }
 \author{
 Dong Yin

@@ -33,16 +33,19 @@
 #' \item{$geno$pop.ind}{the number of individuals in the base population.}
 #' \item{$geno$prob}{the genotype code probability.}
 #' \item{$geno$rate.mut}{the mutation rate of the genotype data.}
+#' \item{$geno$cld}{whether to generate a complete LD genotype data when 'incols == 2'.}
 #' }
 #' 
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate genotype simulation parameters
 #' SP <- param.geno(pop.marker = 1e4, pop.ind = 1e2)
 #' 
 #' # Run genotype simulation
 #' SP <- genotype(SP)
+#' }
 genotype <- function(SP = NULL, ncpus = 0, verbose = TRUE) {
 
 ### Start genotype simulation
@@ -60,9 +63,13 @@ genotype <- function(SP = NULL, ncpus = 0, verbose = TRUE) {
   pop.map <- SP$map$pop.map
   incols <- SP$geno$incols
   pop.marker <- SP$geno$pop.marker
+  if (!is.null(pop.map)) {
+    SP$geno$pop.marker <- pop.marker <- nrow(pop.map)
+  }
   pop.ind <- SP$geno$pop.ind
   prob <- SP$geno$prob
   rate.mut <- SP$geno$rate.mut
+  cld <- SP$geno$cld
   
   if (is.null(SP)) {
     stop("'SP' should be specified!")
@@ -70,9 +77,16 @@ genotype <- function(SP = NULL, ncpus = 0, verbose = TRUE) {
   if (is.null(pop.geno) & is.null(pop.marker) & is.null(pop.ind)) {
     stop("Please input information of genotype!")
   }
-
+  if (!(incols == 1 | incols == 2)) {
+    stop("'incols' should only be 1 or 2!")
+  }
+  
   if (!is.null(pop.geno)) {
     logging.log(" Input outer genotype matrix...\n", verbose = verbose)
+    if (incols == 1) {
+      pop.geno <- geno.cvt2(pop.geno[])
+      SP$geno$incols <- incols <- 2
+    } 
     if (is.big.matrix(pop.geno)) {
       bigmat <- pop.geno
     } else {
@@ -86,20 +100,19 @@ genotype <- function(SP = NULL, ncpus = 0, verbose = TRUE) {
 
   } else if (!is.null(pop.marker) & !is.null(pop.ind)) {
     logging.log(" Establish genotype matrix of base-population...\n", verbose = verbose)
-    if (incols == 2) {
-      codes <- c(0, 1)
-      if (!is.null(prob) & length(prob) != 2) {
-        stop("The length of prob should be 2!")
-      }
-    } else if (incols == 1) {
-      codes <- c(0, 1, 2)
-      if (!is.null(prob) & length(prob) != 3) {
-        stop("The length of prob should be 3!")
-      }
-    } else {
-      stop("'incols' should only be 1 or 2!")
+    if (!is.null(prob) & length(prob) != 2) {
+      stop("The length of prob should be 2!")
     }
-    pop.geno <- matrix(sample(codes, pop.marker*pop.ind*incols, prob = prob, replace = TRUE), pop.marker, incols*pop.ind)
+    if (incols == 1) {
+      SP$geno$incols <- incols <- 2
+    }
+    if (incols == 2 & cld) {
+      pop.geno <- matrix(0, pop.marker, incols*pop.ind)
+      if (is.null(prob)) {  prob <- c(0.5, 0.5) }
+      pop.geno[, sample(1:ncol(pop.geno), prob[2] * ncol(pop.geno))] <- 1
+    } else {
+      pop.geno <- matrix(sample(c(0, 1), pop.marker*pop.ind*incols, prob = prob, replace = TRUE), pop.marker, incols*pop.ind)
+    }
     bigmat <- big.matrix(
       nrow = nrow(pop.geno),
       ncol = ncol(pop.geno),
@@ -131,21 +144,36 @@ genotype <- function(SP = NULL, ncpus = 0, verbose = TRUE) {
         bigmat[Recom, (2*ind-1)] <- geno.swap
       }
     }
-  }
-      
-  if (!is.null(rate.mut)) {
-    # logging.log(" Mutation on genotype matrix...\n", verbose = verbose)
-    spot.total <- pop.marker * incols * pop.ind
-    num.mut <- ceiling(spot.total * rate.mut)
-    row.mut <- sample(1:pop.marker, num.mut)
-    col.mut <- sample(1:(incols*pop.ind), num.mut)
-    for (i in 1:length(row.mut)) {
-      if (bigmat[row.mut[i], col.mut[i]] == 1) {
-        bigmat[row.mut[i], col.mut[i]] <- 0
-      } else {
-        bigmat[row.mut[i], col.mut[i]] <- 1
+    
+    if (!is.null(rate.mut)) {
+      # logging.log(" Mutation on genotype matrix...\n", verbose = verbose)
+      if (length(rate.mut) != 2) {
+        stop("Please input the mutation rate of SNP and QTN!")
+      }
+      spot.total <- pop.marker * incols * pop.ind
+      qtn.index <- sort(unique(unlist((SP$map$qtn.index))))
+      snp.index <- (1:pop.marker)[-qtn.index]
+      num.mut.qtn <- round(spot.total * rate.mut[[1]])
+      num.mut.snp <- round(spot.total * rate.mut[[2]])
+      row.mut <- col.mut <- NULL
+      if (length(qtn.index) > 0 & num.mut.qtn > 0) {
+        row.mut <- c(row.mut, sample(qtn.index, num.mut.qtn, replace = TRUE))
+      }
+      if (length(snp.index) > 0 & num.mut.snp > 0) {
+        row.mut <- c(row.mut, sample(snp.index, num.mut.snp, replace = TRUE))
+      }
+      if (length(row.mut) > 0) {
+        col.mut <- sample(1:(incols*pop.ind), length(row.mut), replace = TRUE)
+        for (j in 1:length(row.mut)) {
+          if (bigmat[row.mut[j], col.mut[j]] == 1) {
+            bigmat[row.mut[j], col.mut[j]] <- 0
+          } else {
+            bigmat[row.mut[j], col.mut[j]] <- 1
+          }
+        }
       }
     }
+    
   }
   
   if (is.null(SP$geno$pop.geno)) {
@@ -173,11 +201,15 @@ genotype <- function(SP = NULL, ncpus = 0, verbose = TRUE) {
 #' the function returns a list containing
 #' \describe{
 #' \item{$map$pop.map}{the map data with annotation information.}
+#' \item{$map$species}{the species of genetic map, which can be "arabidopsis", "cattle", "chicken", "dog", "horse", "human", "maize", "mice", "pig", and "rice".}
+#' \item{$map$pop.marker}{the number of markers.}
+#' \item{$map$num.chr}{the number of chromosomes.}
+#' \item{$map$len.chr}{the length of chromosomes.}
 #' \item{$map$qtn.model}{the genetic model of QTN such as 'A + D'.}
 #' \item{$map$qtn.index}{the QTN index for each trait.}
 #' \item{$map$qtn.num}{the QTN number for (each group in) each trait.}
 #' \item{$map$qtn.dist}{the QTN distribution containing 'norm', 'geom', 'gamma' or 'beta'.}
-#' \item{$map$qtn.sd}{the standard deviations for normal distribution.}
+#' \item{$map$qtn.var}{the variances for normal distribution.}
 #' \item{$map$qtn.prob}{the probability of success for geometric distribution.}
 #' \item{$map$qtn.shape}{the shape parameter for gamma distribution.}
 #' \item{$map$qtn.scale}{the scale parameter for gamma distribution.}
@@ -206,12 +238,17 @@ annotation <- function(SP, verbose = TRUE) {
   
   # annotation parameters
   pop.map <- SP$map$pop.map
+  SP$map$pop.map <- NULL
+  species <- SP$map$species
+  pop.marker <- SP$map$pop.marker
+  num.chr <- SP$map$num.chr
+  len.chr <- SP$map$len.chr
   pop.geno <- SP$geno$pop.geno
   qtn.model <- SP$map$qtn.model
   qtn.index <- SP$map$qtn.index
   qtn.num <- SP$map$qtn.num
   qtn.dist <- SP$map$qtn.dist
-  qtn.sd <- SP$map$qtn.sd
+  qtn.var <- SP$map$qtn.var
   qtn.prob <- SP$map$qtn.prob
   qtn.shape <- SP$map$qtn.shape
   qtn.scale <- SP$map$qtn.scale
@@ -226,7 +263,11 @@ annotation <- function(SP, verbose = TRUE) {
   range.cold <- SP$map$range.cold
   
   if (is.null(pop.map)) {
-    pop.map <- generate.map(pop.marker = 1e4)
+    pop.map <- generate.map(species = species, pop.marker = pop.marker, num.chr = num.chr, len.chr = len.chr)
+    if (!is.null(species)) {
+      SP$map$pop.marker <- pop.marker <- nrow(pop.map)
+      SP$map$num.chr <- num.chr <- length(unique(pop.map[, 2]))
+    }
   }
   
   if (!is.data.frame(pop.map)) {
@@ -331,7 +372,7 @@ annotation <- function(SP, verbose = TRUE) {
   names(qtn.trn.eff) <- paste0(qtn.eff.name[, 2], "_", qtn.eff.name[, 1])
   for (i in 1:nTrait) {
     for (j in 1:nAD) {
-      qtn.trn.eff[qtn.trn[[i]], nAD*(i-1) + j] <- cal.eff(qtn.num[[i]], qtn.dist[[i]], qtn.sd[[i]], qtn.prob[[i]], qtn.shape[[i]], qtn.scale[[i]], qtn.shape1[[i]], qtn.shape2[[i]], qtn.ncp[[i]])
+      qtn.trn.eff[qtn.trn[[i]], nAD*(i-1) + j] <- cal.eff(qtn.num[[i]], qtn.dist[[i]], qtn.var[[i]], qtn.prob[[i]], qtn.shape[[i]], qtn.scale[[i]], qtn.shape1[[i]], qtn.shape2[[i]], qtn.ncp[[i]])
     }
   }
   pop.map <- cbind(pop.map, qtn.trn.eff)
@@ -342,7 +383,7 @@ annotation <- function(SP, verbose = TRUE) {
     qtn.trn.inteff <- rep(list(NULL), nTrait)
     for (i in 1:nTrait) {
       GxG.tmp <- GxG.network(pop.map, qtn.trn[[i]], qtn.model)
-      GxG.tmp.eff <- cal.eff(length(GxG.tmp), qtn.dist[[i]], qtn.sd[[i]], qtn.prob[[i]], qtn.shape[[i]], qtn.scale[[i]], qtn.shape1[[i]], qtn.shape2[[i]], qtn.ncp[[i]])
+      GxG.tmp.eff <- cal.eff(length(GxG.tmp), qtn.dist[[i]], qtn.var[[i]], qtn.prob[[i]], qtn.shape[[i]], qtn.scale[[i]], qtn.shape1[[i]], qtn.shape2[[i]], qtn.ncp[[i]])
       GxG.tmp <- data.frame(GxG.tmp, GxG.tmp.eff)
       names(GxG.tmp) <- c("GxG_name", paste0("GxG_eff", i))
       qtn.trn.inteff[[i]] <- GxG.tmp
@@ -369,7 +410,7 @@ annotation <- function(SP, verbose = TRUE) {
 #'
 #' @param qtn.num integer: the QTN number of single trait; vector: the multiple group QTN number of single trait; matrix: the QTN number of multiple traits.
 #' @param qtn.dist the QTN distribution containing 'norm', 'geom', 'gamma' or 'beta'.
-#' @param qtn.sd the standard deviations for normal distribution.
+#' @param qtn.var the standard deviations for normal distribution.
 #' @param qtn.prob the probability of success for geometric distribution.
 #' @param qtn.shape the shape parameter for gamma distribution.
 #' @param qtn.scale the scale parameter for gamma distribution.
@@ -384,14 +425,14 @@ annotation <- function(SP, verbose = TRUE) {
 #' @examples
 #' eff <- cal.eff(qtn.num = 10)
 #' str(eff)
-cal.eff <- function(qtn.num = 10, qtn.dist = "norm", qtn.sd = 1, qtn.prob = 0.5, qtn.shape = 1, qtn.scale = 1, qtn.shape1 = 1, qtn.shape2 = 1, qtn.ncp = 0) {
+cal.eff <- function(qtn.num = 10, qtn.dist = "norm", qtn.var = 1, qtn.prob = 0.5, qtn.shape = 1, qtn.scale = 1, qtn.shape1 = 1, qtn.shape2 = 1, qtn.ncp = 0) {
 
   if (sum(qtn.num) == 0) return(0)
   
   qtn.eff <- NULL
   for (nq in 1:length(qtn.num)) {
     if (qtn.dist[nq] == "norm") {
-      qtn.eff <- c(qtn.eff, rnorm(qtn.num[nq], 0, qtn.sd[nq]))
+      qtn.eff <- c(qtn.eff, rnorm(qtn.num[nq], 0, sqrt(qtn.var[nq])))
     } else if (qtn.dist[nq] == "geom") {
       qtn.eff <- c(qtn.eff, rgeom(qtn.num[nq], qtn.prob[nq]))
     } else if (qtn.dist[nq] == "gamma") {
@@ -472,6 +513,7 @@ GxG.network <- function(pop.map = NULL, qtn.pos = 1:10, qtn.model = "A:D") {
 #'
 #' @author Dong Yin
 #' 
+#' @param species the species of genetic map, which can be "arabidopsis", "cattle", "chicken", "dog", "horse", "human", "maize", "mice", "pig", and "rice".
 #' @param pop.marker the number of markers.
 #' @param num.chr the number of chromosomes.
 #' @param len.chr the length of chromosomes.
@@ -483,31 +525,42 @@ GxG.network <- function(pop.map = NULL, qtn.pos = 1:10, qtn.model = "A:D") {
 #' @examples
 #' pop.map <- generate.map(pop.marker = 1e4)
 #' str(pop.map)
-generate.map <- function(pop.marker = NULL, num.chr = 18, len.chr = 1.5e8) {
+generate.map <- function(species = NULL, pop.marker = NULL, num.chr = 18, len.chr = 1.5e8) {
   
-  if(is.null(pop.marker)) {
-    stop("Please specify the number of markers!")
-  }
-  
-  num.every <- rep(pop.marker %/% num.chr, num.chr)
-  num.every[num.chr] <- num.every[num.chr] + pop.marker %% num.chr
-  
-  SNP <- paste("M", 1:(pop.marker), sep = "")
-  Chrom <- rep(1:num.chr, num.every)
-  BP <- do.call('c', lapply(1:num.chr, function(chr) {
-    return(sort(sample(1:len.chr, num.every[chr]))) 
-  }))
-  
-  base <- c("A", "T", "C", "G")
-  ALT <- sample(base, pop.marker, replace = TRUE)
-  REF <- sample(base, pop.marker, replace = TRUE)
-  ff <- ALT == REF
-  while (sum(ff) > 0) {
-    REF[ff] <- sample(base, sum(ff), replace = TRUE)
+  if (is.null(species)) {
+    
+    if(is.null(pop.marker)) {
+      stop("Please specify the number of markers!")
+    }
+    
+    num.every <- rep(pop.marker %/% num.chr, num.chr)
+    num.every[num.chr] <- num.every[num.chr] + pop.marker %% num.chr
+    
+    SNP <- paste("M", 1:(pop.marker), sep = "")
+    Chrom <- rep(1:num.chr, num.every)
+    BP <- do.call('c', lapply(1:num.chr, function(chr) {
+      return(sort(sample(1:len.chr, num.every[chr]))) 
+    }))
+    
+    base <- c("A", "T", "C", "G")
+    ALT <- sample(base, pop.marker, replace = TRUE)
+    REF <- sample(base, pop.marker, replace = TRUE)
     ff <- ALT == REF
+    while (sum(ff) > 0) {
+      REF[ff] <- sample(base, sum(ff), replace = TRUE)
+      ff <- ALT == REF
+    }
+    
+    map <- data.frame(SNP, Chrom, BP, ALT, REF)
+    
+  } else {
+    mapPath <- system.file("extdata", "06map", paste0(species, "_map.txt"), package = "simer")
+    if (!file.exists(mapPath)) {
+      stop("Please input a correct species, it can be 'arabidopsis', 'cattle', 'chicken', 'dog', 'horse', 'human', 'maize', 'mice', 'pig', and 'rice'!")
+    }
+    map <- read.table(mapPath, header = TRUE)
   }
   
-  map <- data.frame(SNP, Chrom, BP, ALT, REF)
   return(map)
 }
 
@@ -527,12 +580,14 @@ generate.map <- function(pop.marker = NULL, num.chr = 18, len.chr = 1.5e8) {
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' SP <- param.geno(pop.marker = 1e4, pop.ind = 1e2, incols = 2)
 #' SP <- genotype(SP)
 #' geno1 <- SP$geno$pop.geno$gen1
 #' geno2 <- geno.cvt1(geno1)
 #' geno1[1:6, 1:4]
 #' geno2[1:6, 1:2]
+#' }
 geno.cvt1 <- function(pop.geno) {
   if (is.null(pop.geno)) return(NULL)
   num.ind <- ncol(pop.geno) / 2
@@ -558,12 +613,14 @@ geno.cvt1 <- function(pop.geno) {
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' SP <- param.geno(pop.marker = 1e4, pop.ind = 1e2, incols = 1)
 #' SP <- genotype(SP)
 #' geno1 <- SP$geno$pop.geno$gen1
 #' geno2 <- geno.cvt2(geno1)
 #' geno1[1:6, 1:2]
 #' geno2[1:6, 1:4]
+#' }
 geno.cvt2 <- function(pop.geno) {
   if (is.null(pop.geno)) return(NULL)
   nind <- ncol(pop.geno)

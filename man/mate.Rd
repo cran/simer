@@ -4,7 +4,7 @@
 \alias{mate}
 \title{Mate}
 \usage{
-mate(pop.geno, index.sir, index.dam, incols = 1, ncpus = 0)
+mate(pop.geno, index.sir, index.dam, ncpus = 0)
 }
 \arguments{
 \item{pop.geno}{the genotype data.}
@@ -12,8 +12,6 @@ mate(pop.geno, index.sir, index.dam, incols = 1, ncpus = 0)
 \item{index.sir}{the indice of sires.}
 
 \item{index.dam}{the indice of dams.}
-
-\item{incols}{'1':one-column genotype represents an individual; '2': two-column genotype represents an individual.}
 
 \item{ncpus}{the number of threads used, if NULL, (logical core number - 1) is automatically used.}
 }
@@ -28,6 +26,7 @@ Build date: Nov 14, 2018
 Last update: Apr 30, 2022
 }
 \examples{
+\donttest{
 # Generate the genotype data
 SP <- param.geno(pop.marker = 1e4, pop.ind = 1e2)
 SP <- genotype(SP)
@@ -41,6 +40,7 @@ index.dam <- rep(51:100, each = 2)
 geno.curr <- mate(pop.geno = pop.geno, index.sir = index.sir,
                   index.dam = index.dam)
 geno.curr[1:5, 1:5]
+}
 }
 \author{
 Dong Yin

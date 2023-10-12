@@ -36,11 +36,13 @@
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate all simulation parameters
 #' SP <- param.simer(out = "simer")
 #' 
 #' # Run Simer
 #' SP <- simer(SP)
+#' }
 simer <- function(SP) {
 
 ### Start simer
@@ -80,7 +82,8 @@ simer <- function(SP) {
   logging.log("--------------------------- replication ", replication, "---------------------------\n", verbose = verbose)
   op <- Sys.time()
   logging.log(" SIMER BEGIN AT", as.character(op), "\n", verbose = verbose)
-  set.seed(seed.sim)
+  logging.log(" Random seed is", floor(seed.sim), "\n", verbose = verbose)
+  set.seed(floor(seed.sim))
   
   ################### DATA SIMULATION ###################
   SP <- annotation(SP = SP, verbose = verbose)

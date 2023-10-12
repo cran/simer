@@ -1,53 +1,27 @@
 #include <RcppArmadillo.h>
-#include "simer_omp.h"
-#include <iostream>
+#include <boost/algorithm/string.hpp>
 #include <bigmemory/BigMatrix.h>
 #include <bigmemory/MatrixAccessor.hpp>
-#include <R_ext/Print.h>
-#include <progress.hpp>
-#include "progress_bar.hpp"
+#include "simer_omp.h"
+#include "MinimalProgressBar.h"
 
 // [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::depends(bigmemory, BH)]]
-// [[Rcpp::depends(RcppProgress)]]
 using namespace std;
 using namespace Rcpp;
 using namespace arma;
 
-class MinimalProgressBar: public ProgressBar{
-  public:
-  MinimalProgressBar()  {
-    _finalized = false;
-  }
-  ~MinimalProgressBar() {}
-  void display() {}
-  void update(float progress) {
-    if (_finalized) return;
-    REprintf("\r");
-    REprintf(" Calculating in process...(finished %.2f%)", progress * 100);
-  }
-  void end_display() {
-    if (_finalized) return;
-    REprintf("\r");
-    
-    REprintf(" Calculating in process...(finished 100.00%)");
-    REprintf("\n");
-    _finalized = true;
-  }
-  private:
-  bool _finalized;
-};
-
 template<typename T>
 arma::mat calConf(XPtr<BigMatrix> pMat, int threads=0, bool verbose=true) {
+  omp_setup(threads);
   
-  if(verbose) { Rcout << " Computing Mendel Conflict Matrix..." << endl; }
+  if (verbose) { Rcout << " Computing Mendel Conflict Matrix..." << endl; }
   
   MatrixAccessor<T> bigm = MatrixAccessor<T>(*pMat);
-  int m = pMat->nrow();
-  int n = pMat->ncol();
-  int i, j, k;
+  size_t m = pMat->nrow();
+  size_t n = pMat->ncol();
+  size_t i, j, k;
   
   arma::mat numConfs(n, n, fill::zeros);
   arma::vec coli(m), colj(m);
@@ -67,6 +41,7 @@ arma::mat calConf(XPtr<BigMatrix> pMat, int threads=0, bool verbose=true) {
       }
       arma::uvec confIdx = arma::find(coli == 2 - colj);
       numConfs(i, j) = confIdx.size();
+      numConfs(j, i) = confIdx.size();
     }
     if ( ! Progress::check_abort() ) { p.increment(); }
   }
@@ -93,105 +68,105 @@ arma::mat calConf(XPtr<BigMatrix> pMat, int threads=0, bool verbose=true) {
 
 template <typename T>
 DataFrame PedigreeCorrector(XPtr<BigMatrix> pMat, StringVector genoID, DataFrame rawPed, Nullable<StringVector> candSirID=R_NilValue, Nullable<StringVector> candDamID=R_NilValue, double exclThres=0.005, double assignThres=0.01, Nullable<NumericVector> birthDate=R_NilValue, int threads=0, bool verbose=true) {
-  //omp_setup(threads);
+  omp_setup(threads);
   
   // ******* 01 prepare data for checking rawPed *******
   StringVector kidID = rawPed[0], sirID = rawPed[1], damID = rawPed[2];
-  int n = kidID.size(), m = pMat->nrow();
+  size_t n = kidID.size(), m = pMat->nrow();
+  LogicalVector kidEqSir = (kidID == sirID);
+  LogicalVector kidEqDam = (kidID == damID);
+
   StringVector fullSirID, fullDamID;
   copy(sirID.begin(), sirID.end(), back_inserter(fullSirID));
   copy(damID.begin(), damID.end(), back_inserter(fullDamID));
-  IntegerVector kidOrder, sirOrder, damOrder;
-  kidOrder = match(kidID, genoID); kidOrder = kidOrder - 1;
-  sirOrder = match(sirID, genoID); sirOrder = sirOrder - 1; 
-  damOrder = match(damID, genoID); damOrder = damOrder - 1;
-  LogicalVector naKid, naSir, naDam;
-  naKid = is_na(kidOrder); naSir = is_na(sirOrder); naDam = is_na(damOrder);
-  StringVector sirState(n), damState(n);
-  IntegerVector sirNumConfs(n), damNumConfs(n);
-  
-  int exclMax = exclThres * m, assignMax = assignThres * m;
-  
-  // ******* 02 check rawPed *******
-  StringVector zero(n, "0");
-  sirState[naSir] = "NotFound"; damState[naDam] = "NotFound";
-  sirState[naKid] = "NoGeno"; damState[naKid] = "NoGeno";
-  sirState[(sirID == zero) & (damID == zero)] = "NoGeno"; 
-  damState[(sirID == zero) & (damID == zero)] = "NoGeno"; 
 
-  // kids should not be same as parents
-  sirState[kidID == sirID] = "NotFound";
-  damState[kidID == damID] = "NotFound";
-
-  // calculate conflict of pedigree in the rawPed
-  arma::mat numConfs = calConf(pMat, threads, verbose);
-  
-  for (int i = 0; i < n; i++) {
-
-    if (naKid[i]) { continue; }
-
-    if (!naSir[i]) {
-      if (kidOrder[i] < sirOrder[i]) {
-        sirNumConfs[i] = numConfs(kidOrder[i], sirOrder[i]);
-      } else {
-        sirNumConfs[i] = numConfs(sirOrder[i], kidOrder[i]);
-      }
-      if (sirNumConfs[i] <= exclMax) {
-        sirState[i] = "Match";
-      } else {
-        sirState[i] = "NotFound";
-      }
-    } // if (!isnan(sirOrder[i])) {
-
-    if (!naDam[i]) {
-      if (kidOrder[i] < damOrder[i]) {
-        damNumConfs[i] = numConfs(kidOrder[i], damOrder[i]);
-      } else {
-        damNumConfs[i] = numConfs(damOrder[i], kidOrder[i]);
-      }
-      if (damNumConfs[i] <= exclMax) {
-        damState[i] = "Match";
-      } else {
-        damState[i] = "NotFound";
-      }
-    } // if (!isnan(damOrder[i])) {
-
-  } // for (int i = 0; i < n; i++) {
-
-  // ******* 03 prepare data for seeking parents *******
   StringVector candSir, candDam;
   if (candSirID.isNotNull()) {
     StringVector candSirIDUse = as<StringVector>(candSirID);
-    for (int i = 0; i < candSirIDUse.size(); i++)
+    for (size_t i = 0; i < candSirIDUse.size(); i++)
       fullSirID.insert(fullSirID.end(), candSirIDUse[i]);
   }
   if (candDamID.isNotNull()) {
     StringVector candDamIDUse = as<StringVector>(candDamID);
-    for (int i = 0; i < candDamIDUse.size(); i++)
+    for (size_t i = 0; i < candDamIDUse.size(); i++)
       fullSirID.insert(fullSirID.end(), candDamIDUse[i]);
   }
   NumericVector birdate;
   if (birthDate.isNotNull()) {
     birdate = as<NumericVector>(birthDate);
   }
+  fullSirID = sort_unique(fullSirID); fullSirID.erase(0);
+  fullDamID = sort_unique(fullDamID); fullDamID.erase(0);
+  
+  // kids should not be same as parents
+  sirID[kidEqSir] = "0"; damID[kidEqDam] = "0";
+  NumericVector kidOrder, sirOrder, damOrder;
+  kidOrder = match(kidID, genoID); kidOrder = kidOrder - 1;
+  sirOrder = match(sirID, genoID); sirOrder = sirOrder - 1;
+  damOrder = match(damID, genoID); damOrder = damOrder - 1;
+  LogicalVector naKid, naSir, naDam;
+  naKid = is_na(kidOrder); naSir = is_na(sirOrder); naDam = is_na(damOrder);
+  StringVector sirState(n), damState(n);
+  NumericVector sirNumConfs(n), damNumConfs(n);
+  
+  int exclMax = exclThres * m, assignMax = assignThres * m;
+  
+  // ******* 02 check rawPed *******
+  sirState[naKid | naSir] = "NoGeno"; sirState[kidEqSir] = "NotFound"; 
+  damState[naKid | naDam] = "NoGeno"; damState[kidEqDam] = "NotFound"; 
+  
+  // calculate conflict of pedigree in the rawPed
+  arma::mat numConfs = calConf(pMat, threads, verbose);
+  // arma::mat numConfs(pMat->ncol(), pMat->ncol(), fill::zeros);
+  
+  for (size_t i = 0; i < n; i++) {
 
-  fullSirID = sort_unique(fullSirID);
-  fullDamID = sort_unique(fullDamID);
-  IntegerVector candKidOrder, candParOrder;
+    if (naKid[i]) { continue; }
 
-  arma::mat subNumConfs;
-  arma::uvec candParUse, scoreOrder, findPos;
-  arma::uword maxPos, rowPos, colPos;
-  LogicalVector kidFlag;
-  string candPar1, candPar2;
+    if (!naSir[i]) {
+      sirNumConfs[i] = numConfs(kidOrder[i], sirOrder[i]);
+      if (sirNumConfs[i] <= exclMax) {
+        sirState[i] = "Match";
+      } else {
+        sirState[i] = "NotFound";
+        sirID[i] = "0";
+      }
+    }
+
+    if (!naDam[i]) {
+      damNumConfs[i] = numConfs(kidOrder[i], damOrder[i]);
+      if (damNumConfs[i] <= exclMax) {
+        damState[i] = "Match";
+      } else {
+        damState[i] = "NotFound";
+        damID[i] = "0";
+      }
+    }
+
+  }
+
+  // ******* 03 seek parents of NotMatch in the rawPed *******
   StringVector candKid(n);
-  int numCand;
+  LogicalVector kidFlag;
+  NumericVector candKidOrder, candParOrder;
+  arma::uvec candParUse;
+  size_t numCand;
+  arma::mat subNumConfs;
 
-  // ******* 04 seek parents of NotMatch in the rawPed *******
-  for (int i = 0; i < n; i++) {
+  arma::uword maxPos, rowPos, colPos;
+  StringVector candPar1(1), candPar2(1);
+  
+  size_t i, j;
+
+  MinimalProgressBar pb;
+  Progress p(n, verbose, pb);
+
+  if(verbose) { Rcout << " Seeking Parents..." << endl; }
+  // #pragma omp parallel for schedule(dynamic) private(i, j)
+  for (i = 0; i < n; i++) {
 
     if ((sirState[i] != "NotFound") && (damState[i] != "NotFound")) { continue; }
-
+    
     candKid.fill(kidID[i]);
     kidFlag = (sirID == candKid | damID == candKid) & !naKid;
     if (birthDate.isNotNull()) {  kidFlag = kidFlag |  birdate > birdate[i]; }
@@ -199,15 +174,14 @@ DataFrame PedigreeCorrector(XPtr<BigMatrix> pMat, StringVector genoID, DataFrame
     candParOrder = wrap(arma::find(numConfs.row(kidOrder[i]) < assignMax));
     candParUse = as<arma::uvec>(setdiff(candParOrder, candKidOrder));
     numCand = candParUse.size();
-    if (numCand == 0) { continue;  }
+    if (numCand == 0) { continue; }
     subNumConfs = numConfs.rows(candParUse);
     subNumConfs = subNumConfs.cols(candParUse);
-
+    
     arma::uvec sortIdx = sort_index(subNumConfs);
-
-    for (double j = sortIdx.max(); j > 0; j--) {
-      findPos = arma::find(sortIdx == j);
-      maxPos = findPos[0];
+    for (j = 0; j < sortIdx.n_elem; j++) {
+      
+      maxPos = sortIdx[sortIdx.n_elem-1-j];;
       rowPos = (maxPos + 1) % numCand;
       colPos = (maxPos + 1) / numCand;
       if (rowPos == 0) {
@@ -215,51 +189,51 @@ DataFrame PedigreeCorrector(XPtr<BigMatrix> pMat, StringVector genoID, DataFrame
         colPos = colPos - 1;
       }
       rowPos = rowPos - 1;
-      candPar1 = genoID[candParUse[rowPos]];
-      candPar2 = genoID[candParUse[colPos]];
+      candPar1[0] = genoID[candParUse[rowPos]];
+      candPar2[0] = genoID[candParUse[colPos]];
 
-      if (find(fullSirID.begin(), fullSirID.end(), candPar1) != fullSirID.end()) {
-        if (find(fullDamID.begin(), fullDamID.end(), candPar2) != fullDamID.end()) {
-          if (candPar1.compare(sirID[i])) {
-            sirID[i] = candPar1;
+      if ((sirState[i] == "Match") || (sirState[i] == "Found")) {
+        if (candPar1[0] != sirID[i]) {
+          continue;
+        } 
+      }
+      if ((damState[i] == "Match") || (damState[i] == "Found")) {
+        if (candPar2[0] != damID[i]) {
+          continue;
+        } 
+      }
+      
+      if (find(fullSirID.begin(), fullSirID.end(), candPar1[0]) != fullSirID.end()) {
+        if (find(fullDamID.begin(), fullDamID.end(), candPar2[0]) != fullDamID.end()) {
+          if (sirState[i] == "NotFound") {
+            sirID[i] = candPar1[0];
             sirState[i] = "Found";
             sirNumConfs[i] = numConfs(kidOrder[i], candParUse[rowPos]);
           }
-          if (candPar2.compare(damID[i])) {
-            damID[i] = candPar2;
+          if (damState[i] == "NotFound") {
+            damID[i] = candPar2[0];
             damState[i] = "Found";
             damNumConfs[i] = numConfs(kidOrder[i], candParUse[colPos]);
           }
-          break;
-        }
-
-      } else if (find(fullSirID.begin(), fullSirID.end(), candPar2) != fullSirID.end()) {
-        if (find(fullDamID.begin(), fullDamID.end(), candPar1) != fullDamID.end()) {
-          if (candPar2.compare(sirID[i])) {
-            sirID[i] = candPar2;
-            sirState[i] = "Found";
-            sirNumConfs[i] = numConfs(kidOrder[i], candParUse[colPos]);
+          if (((sirState[i] == "Match") || (sirState[i] == "Found")) && ((damState[i] == "Match") || (damState[i] == "Found"))) {
+            break;
           }
-          if (candPar1.compare(damID[i])) {
-            damID[i] = candPar1;
-            damState[i] = "Found";
-            damNumConfs[i] = numConfs(kidOrder[i], candParUse[rowPos]);
-          }
-          break;
         }
-
       }
+      
     }
+
+    if ( ! Progress::check_abort() ) { p.increment(); }
   }
   
   DataFrame parConflict = DataFrame::create(Named("kid") = kidID,
-                                                _["sir"] = sirID, 
-                                                _["dam"] = damID, 
-                                                _["sirState"] = sirState, 
-                                                _["damState"] = damState, 
-                                                _["sirNumConfs"] = sirNumConfs, 
-                                                _["damNumConfs"] = damNumConfs, 
-                                                _["sirRatioConfs"] = sirNumConfs * 100 / m, 
+                                                _["sir"] = sirID,
+                                                _["dam"] = damID,
+                                                _["sirState"] = sirState,
+                                                _["damState"] = damState,
+                                                _["sirNumConfs"] = sirNumConfs,
+                                                _["damNumConfs"] = damNumConfs,
+                                                _["sirRatioConfs"] = sirNumConfs * 100 / m,
                                                 _["damRatioConfs"] = damNumConfs * 100 / m);
   return parConflict;
 }

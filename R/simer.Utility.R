@@ -33,7 +33,7 @@ simer.Version <- function(width = 60, verbose = TRUE) {
   welcome <- "Welcome to SIMER"
   title   <- "Data Simulation for Life Science and Breeding"
   authors <- c("Designed and Maintained by Dong Yin, Xuanning Zhang, Lilin Yin, Haohao Zhang, and Xiaolei Liu", 
-               "Contributors: Zhenshuang Tang, Jingya Xu, Xinyun Li, Mengjin Zhu, Xiaohui Yuan, and Shuhong Zhao")
+               "Contributors: Zhenshuang Tang, Jingya Xu, Xiaohui Yuan, Xiang Zhou, Xinyun Li, and Shuhong Zhao")
   contact <- "Contact: xiaoleiliu@mail.hzau.edu.cn"
   logo_s  <- c(" ____ ___ __  __ _____ ____  ", 
                "/ ___|_ _|  \\/  | ____|  _ \\ ", 
@@ -220,7 +220,7 @@ print_accomplished <- function(width = 60, verbose = TRUE) {
 #' @param version short label, bottom-right of logo.
 #' @param authors authors of software.
 #' @param contact email or website.
-#' @param line 1, 2, or char.
+#' @param linechar 1, 2, or char.
 #' @param width banner width.
 #' @param verbose whether to print detail.
 #'
@@ -273,7 +273,7 @@ print_info <- function(welcome = NULL, title = NULL, short_title = NULL, logo = 
   
   # align logo
   logo_width <- max(sapply(logo, nchar))
-  for (i in 1:length(logo)) {
+  for (i in seq_along(logo)) {
     l <- paste0(logo[i], paste(rep(" ", logo_width - nchar(logo[i])), collapse = ""))
     l <- make_line(l, width)
     msg <- c(msg, l)
@@ -370,7 +370,7 @@ rule_wrap <- function(string, width, align = "center", linechar = " ") {
   lines <- strwrap(string, width = width - 4)
   
   # wrap
-  for (i in 1:length(lines)) {
+  for (i in seq_along(lines)) {
     l <- make_line(lines[i], width = width, linechar = linechar, align = align)
     msg <- c(msg, l)
   }
@@ -480,10 +480,11 @@ mkl_env <- function(exprs, threads = 1) {
   if (load_if_installed("RevoUtilsMath")) {
     math.cores <- eval(parse(text = "getMKLthreads()"))
     eval(parse(text = "setMKLthreads(threads)"))
+    threads <- math.cores
   }
   result <- exprs
   if (load_if_installed("RevoUtilsMath")) {
-    eval(parse(text = "setMKLthreads(math.cores)"))
+    eval(parse(text = "setMKLthreads(threads)"))
   }
   return(result)
 }
@@ -506,6 +507,7 @@ mkl_env <- function(exprs, threads = 1) {
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' library(bigmemory)
 #' mat <- filebacked.big.matrix(
 #'      nrow = 10,
@@ -517,18 +519,19 @@ mkl_env <- function(exprs, threads = 1) {
 #'      descriptorfile = 'simer.geno.desc')
 #'
 #' remove_bigmatrix(x = "simer")
+#' }
 remove_bigmatrix <- function(x, desc_suffix = ".geno.desc", bin_suffix = ".geno.bin") {
-  name <- basename(x)
-  path <- dirname(x)
+  filename <- paste0(basename(x), bin_suffix)
+  dirname <- paste0(dirname(x), "/")
   
   descfile <- paste0(x, desc_suffix)
   binfile  <- paste0(x, bin_suffix)
   
-  remove_var <- function(binfile, envir) {
+  remove_var <- function(filename, dirname, envir) {
     for (v in ls(envir = envir)) {
       if (any(class(get(v, envir = envir)) == "big.matrix")) {
         desc <- describe(get(v, envir = envir))@description
-        if (desc$filename == binfile) {
+        if ((desc$filename == filename) && (desc$dirname == dirname)) {
           rm(list = v, envir = envir)
           gc()
         }
@@ -537,8 +540,9 @@ remove_bigmatrix <- function(x, desc_suffix = ".geno.desc", bin_suffix = ".geno.
   }
   
   # delete objects that occupy binfile in the global environment
-  remove_var(binfile, as.environment(-1L))
-  remove_var(binfile, globalenv())
+  remove_var(filename, dirname, parent.env(as.environment(-1L)))
+  remove_var(filename, dirname, globalenv())
+  
   gc()
   
   if (file.exists(descfile)) {
@@ -565,12 +569,14 @@ remove_bigmatrix <- function(x, desc_suffix = ".geno.desc", bin_suffix = ".geno.
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' outpath <- tempdir()
 #' SP <- param.simer(out = "simer")
 #' SP <- simer(SP)
 #' SP$global$outpath <- outpath
 #' write.file(SP)
 #' unlink(file.path(outpath, "180_Simer_Data_numeric"), recursive = TRUE)
+#' }
 write.file <- function(SP) {
   
   # global parameters
@@ -629,7 +635,7 @@ write.file <- function(SP) {
   
   pop.inds <- Reduce("+", pop.inds, accumulate = TRUE)
   pop.inds <- c(0, pop.inds[-length(pop.inds)]) + 1
-  for (i in 1:length(out.geno.gen)) {
+  for (i in seq_along(out.geno.gen)) {
     if (incols == 1) {
       BigMat2BigMat(geno.total@address, SP$geno$pop.geno[[out.geno.gen[i]]]@address, op = pop.inds[i], threads = ncpus)
     } else {
@@ -637,8 +643,6 @@ write.file <- function(SP) {
     }
   }
   
-  SP$global$useAllGeno <- TRUE
-  SP <- phenotype(SP)
   pheno.geno <- NULL
   pheno.total <- do.call(rbind, lapply(out.pheno.gen, function(i) {
     return(SP$pheno$pop[[i]])
@@ -650,21 +654,25 @@ write.file <- function(SP) {
     if (!is.null(SP$map$pop.map.GxG)) {
       write.table(SP$map$pop.map.GxG, file = file.path(directory.rep, paste0(out, ".GxG.geno.map")), row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
     }
+    rm(geno.total); gc();
   
   } else if (out.format == "plink") {
     pheno.geno <- do.call(rbind, lapply(out.geno.gen, function(i) {
       return(SP$pheno$pop[[i]])
     }))
+    phe.name <- unlist(strsplit(SP$pheno$phe.model[[1]], split = "\\s*\\=\\s*"))[1]
+    pheno.geno <- pheno.geno[, c(1, 5, 6, 7, match(phe.name, names(pheno.geno)))]
+    pheno.geno <- pheno.geno[!duplicated(pheno.geno[, 1]), ]
     simer.Data.MVP2Bfile(bigmat = geno.total, map = SP$map$pop.map, pheno = pheno.geno, out = file.path(directory.rep, out), threads = ncpus, verbose = verbose)
-    geno.total <- 0
+    rm(geno.total); gc();
+    remove_bigmatrix(file.path(directory.rep, out))
   }
   write.table(pheno.total[, c(1, 5, 6)], file = file.path(directory.rep, paste0(out, ".ped")), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
   write.table(pheno.total, file = file.path(directory.rep, paste0(out, ".phe")), sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE)
   
   logging.log(" All files have been saved successfully!\n", verbose = verbose)
   
-  rm(geno.total); rm(pheno.total); rm(pheno.geno); gc()
-  remove_bigmatrix(file.path(directory.rep, out))
+  rm(pheno.total); rm(pheno.geno); gc();
   
   return(SP)
 }

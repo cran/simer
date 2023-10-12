@@ -34,6 +34,7 @@ Build date: Sep 8, 2018
 Last update: Apr 30, 2022
 }
 \examples{
+\donttest{
 # Generate annotation simulation parameters
 SP <- param.annot(qtn.num = list(tr1 = 10))
 # Generate genotype simulation parameters
@@ -41,7 +42,7 @@ SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 # Generate phenotype simulation parameters
 SP <- param.pheno(SP = SP, pop.ind = 100)
 # Generate selection parameters
-SP <- param.sel(SP = SP, sel.single = "comb")
+SP <- param.sel(SP = SP, sel.single = "ind")
 
 # Run annotation simulation
 SP <- annotation(SP)
@@ -51,6 +52,7 @@ SP <- genotype(SP)
 SP <- phenotype(SP)
 # Run selection
 SP <- selects(SP)
+}
 }
 \author{
 Dong Yin

@@ -27,11 +27,15 @@
 #' the function returns a list containing
 #' \describe{
 #' \item{$map$pop.map}{the map data with annotation information.}
+#' \item{$map$species}{the species of genetic map, which can be "arabidopsis", "cattle", "chicken", "dog", "horse", "human", "maize", "mice", "pig", and "rice".}
+#' \item{$map$pop.marker}{the number of markers.}
+#' \item{$map$num.chr}{the number of chromosomes.}
+#' \item{$map$len.chr}{the length of chromosomes.}
 #' \item{$map$qtn.model}{the genetic model of QTN such as 'A + D'.}
 #' \item{$map$qtn.index}{the QTN index for each trait.}
 #' \item{$map$qtn.num}{the QTN number for (each group in) each trait.}
 #' \item{$map$qtn.dist}{the QTN distribution containing 'norm', 'geom', 'gamma' or 'beta'.}
-#' \item{$map$qtn.sd}{the standard deviations for normal distribution.}
+#' \item{$map$qtn.var}{the standard deviations for normal distribution.}
 #' \item{$map$qtn.prob}{the probability of success for geometric distribution.}
 #' \item{$map$qtn.shape}{the shape parameter for gamma distribution.}
 #' \item{$map$qtn.scale}{the scale parameter for gamma distribution.}
@@ -58,11 +62,15 @@ param.annot <- function(SP = NULL, ...) {
   if (is.null(SP$map)) {
     SP.map <- list(
       pop.map = NULL,
+      species = NULL,
+      pop.marker = 1e4,
+      num.chr = 18,
+      len.chr = 1.5e8,
       qtn.model = "A",
       qtn.index = NULL,
       qtn.num = list(tr1 = 10),
       qtn.dist = list(tr1 = "norm"),
-      qtn.sd = list(tr1 = NA),
+      qtn.var = list(tr1 = NA),
       qtn.prob = list(tr1 = NA),
       qtn.shape = list(tr1 = NA),
       qtn.scale = list(tr1 = NA),
@@ -77,8 +85,8 @@ param.annot <- function(SP = NULL, ...) {
       range.cold = 1:5
     )
     
-    group1 <- c("pop.map", "qtn.model", "qtn.index")
-    group2 <- c("qtn.num", "qtn.dist", "qtn.sd", "qtn.prob", "qtn.shape", "qtn.scale", "qtn.shape1", "qtn.shape2", "qtn.ncp")
+    group1 <- c("pop.map", "species", "pop.marker", "num.chr", "len.chr", "qtn.model", "qtn.index")
+    group2 <- c("qtn.num", "qtn.dist", "qtn.var", "qtn.prob", "qtn.shape", "qtn.scale", "qtn.shape1", "qtn.shape2", "qtn.ncp")
     group3 <- c("qtn.spot", "len.block", "maf", "recom.spot", "range.hot", "range.cold")
     
     for (x in names(SP.tmp)) {
@@ -106,8 +114,9 @@ param.annot <- function(SP = NULL, ...) {
         SP.map$qtn.dist[[i]] <- rep(SP.map$qtn.dist[[i]], nGroup)
       }
       for (j in 1:nGroup) {
+        SP.map$qtn.var[[i]][j] <- 0.01
         if (SP.map$qtn.dist[[i]][j] == "norm") {
-          SP.map$qtn.sd[[i]][j] <- 1
+          # SP.map$qtn.var[[i]][j] <- 0.01
         } else if (SP.map$qtn.dist[[i]][j] == "geom") {
           SP.map$qtn.prob[[i]][j] <- 0.5
         } else if (SP.map$qtn.dist[[i]][j] == "gamma") {
@@ -142,6 +151,10 @@ param.annot <- function(SP = NULL, ...) {
     SP.map <- SP$map
   }
   
+  if (!all((names(SP.tmp) %in% allparam))) {
+    stop(paste(names(SP.tmp)[!(names(SP.tmp) %in% allparam)], collapse = ", "), " are not right parameters!")
+  }
+  
   for (x in names(SP.tmp)) {
     if (x %in% names(SP.map)) {
       SP.map[[x]] <- SP.tmp[[x]]
@@ -173,6 +186,7 @@ param.annot <- function(SP = NULL, ...) {
 #' \item{$geno$pop.ind}{the number of individuals in the base population.}
 #' \item{$geno$prob}{the genotype code probability.}
 #' \item{$geno$rate.mut}{the mutation rate of the genotype data.}
+#' \item{$geno$cld}{whether to generate a complete LD genotype data when 'incols == 2'.}
 #' }
 #' 
 #' @export
@@ -191,11 +205,16 @@ param.geno <- function(SP = NULL, ...) {
       pop.marker = 1e4,
       pop.ind = 1e2,
       prob = NULL,
-      rate.mut = 1e-8
+      rate.mut = list(qtn = 1e-8, snp = 1e-8),
+      cld = FALSE
     )
     
   } else {
     SP.geno <- SP$geno
+  }
+  
+  if (!all((names(SP.tmp) %in% allparam))) {
+    stop(paste(names(SP.tmp)[!(names(SP.tmp) %in% allparam)], collapse = ", "), " are not right parameters!")
   }
   
   for (x in names(SP.tmp)) {
@@ -228,6 +247,7 @@ param.geno <- function(SP = NULL, ...) {
 #' \item{$pheno$pop.rep}{the repeated times of repeated records.}
 #' \item{$pheno$pop.rep.bal}{whether repeated records are balanced.}
 #' \item{$pheno$pop.env}{a list of environmental factors setting.}
+#' \item{$pheno$phe.type}{a list of phenotype types.}
 #' \item{$pheno$phe.model}{a list of genetic model of phenotype such as "T1 = A + E".}
 #' \item{$pheno$phe.h2A}{a list of additive heritability.}
 #' \item{$pheno$phe.h2D}{a list of dominant heritability.}
@@ -258,6 +278,7 @@ param.pheno <- function(SP = NULL, ...) {
       pop.rep = 1,
       pop.rep.bal = TRUE,
       pop.env = NULL,
+      phe.type = list(tr1 = "continuous"),
       phe.model = list(tr1 = "T1 = A + E"),
       phe.h2A = list(tr1 = NA),
       phe.h2D = list(tr1 = NA),
@@ -273,7 +294,7 @@ param.pheno <- function(SP = NULL, ...) {
     )
     
     group1 <- c("pop", "pop.ind", "pop.rep", "pop.rep.bal", "pop.env")
-    group2 <- c("phe.model", "phe.h2A", "phe.h2D", "phe.h2GxG", "phe.h2GxE", "phe.h2PE", "phe.var")
+    group2 <- c("phe.type", "phe.model", "phe.h2A", "phe.h2D", "phe.h2GxG", "phe.h2GxE", "phe.h2PE", "phe.var")
     group3 <- c("phe.corA", "phe.corA", "phe.corGxG", "phe.corGxE", "phe.corPE", "phe.corE")
     
     for (x in names(SP.tmp)) {
@@ -346,6 +367,10 @@ param.pheno <- function(SP = NULL, ...) {
     SP.pheno <- SP$pheno
   }
   
+  if (!all((names(SP.tmp) %in% allparam))) {
+    stop(paste(names(SP.tmp)[!(names(SP.tmp) %in% allparam)], collapse = ", "), " are not right parameters!")
+  }
+  
   for (x in names(SP.tmp)) {
     if (x %in% names(SP.pheno)) {
       SP.pheno[[x]] <- SP.tmp[[x]]
@@ -386,7 +411,7 @@ param.pheno <- function(SP = NULL, ...) {
 #' @export
 #'
 #' @examples
-#' SP <- param.sel(sel.single = "comb")
+#' SP <- param.sel(sel.single = "ind")
 #' str(SP)
 param.sel <- function(SP = NULL, ...) {
   
@@ -408,6 +433,10 @@ param.sel <- function(SP = NULL, ...) {
     
   } else {
     SP.sel <- SP$sel
+  }
+  
+  if (!all((names(SP.tmp) %in% allparam))) {
+    stop(paste(names(SP.tmp)[!(names(SP.tmp) %in% allparam)], collapse = ", "), " are not right parameters!")
   }
   
   for (x in names(SP.tmp)) {
@@ -436,7 +465,7 @@ param.sel <- function(SP = NULL, ...) {
 #' the function returns a list containing
 #' \describe{
 #' \item{$reprod$pop.gen}{the generations of simulated population.}
-#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
 #' \item{$reprod$sex.rate}{the male rate in the population.}
 #' \item{$reprod$prog}{the progeny number of an individual.}
 #' }
@@ -471,6 +500,10 @@ param.reprod <- function(SP = NULL, ...) {
     
   } else {
     SP.reprod <- SP$reprod
+  }
+  
+  if (!all((names(SP.tmp) %in% allparam))) {
+    stop(paste(names(SP.tmp)[!(names(SP.tmp) %in% allparam)], collapse = ", "), " are not right parameters!")
   }
   
   for (x in names(SP.tmp)) {
@@ -523,7 +556,7 @@ param.global <- function(SP = NULL, ...) {
   if (is.null(SP$global)) {
     SP.global <- list(
       replication = 1,
-      seed.sim = runif(1, 0, 100),
+      seed.sim = runif(1, 0, 1e6),
       out = "simer", 
       outpath = NULL,
       out.format = "numeric",
@@ -543,6 +576,10 @@ param.global <- function(SP = NULL, ...) {
     
   } else {
     SP.global <- SP$global
+  }
+  
+  if (!all((names(SP.tmp) %in% allparam))) {
+    stop(paste(names(SP.tmp)[!(names(SP.tmp) %in% allparam)], collapse = ", "), " are not right parameters!")
   }
   
   for (x in names(SP.tmp)) {

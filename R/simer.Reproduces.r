@@ -28,7 +28,7 @@
 #' the function returns a list containing
 #' \describe{
 #' \item{$reprod$pop.gen}{the generations of simulated population.}
-#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
 #' \item{$reprod$sex.rate}{the male rate in the population.}
 #' \item{$reprod$prog}{the progeny number of an individual.}
 #' \item{$geno}{a list of genotype simulation parameters.}
@@ -38,6 +38,7 @@
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate annotation simulation parameters
 #' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
@@ -45,7 +46,7 @@
 #' # Generate phenotype simulation parameters
 #' SP <- param.pheno(SP = SP, pop.ind = 100)
 #' # Generate selection parameters
-#' SP <- param.sel(SP = SP, sel.single = "comb")
+#' SP <- param.sel(SP = SP, sel.single = "ind")
 #' # Generate reproduction parameters
 #' SP <- param.reprod(SP = SP, reprod.way = "randmate")
 #' 
@@ -59,6 +60,7 @@
 #' SP <- selects(SP)
 #' # Run reproduction
 #' SP <- reproduces(SP)
+#' }
 reproduces <- function(SP, ncpus = 0, verbose = TRUE) {
 
 ### Start reproduction
@@ -79,7 +81,13 @@ reproduces <- function(SP, ncpus = 0, verbose = TRUE) {
 
   } else if (reprod.way == "randexself") {
     SP <- mate.randexself(SP, ncpus = ncpus, verbose = verbose)
-  
+    
+  } else if (reprod.way == "assort") {
+    SP <- mate.randexself(SP, ncpus = ncpus, verbose = verbose)
+    
+  } else if (reprod.way == "disassort") {
+    SP <- mate.randexself(SP, ncpus = ncpus, verbose = verbose)
+    
   } else if (reprod.way == "2waycro") {
     SP <- mate.2waycro(SP, ncpus = ncpus, verbose = verbose)
     
@@ -96,9 +104,12 @@ reproduces <- function(SP, ncpus = 0, verbose = TRUE) {
     SP <- mate.userped(SP, ncpus = ncpus, verbose = verbose)
     
   } else {
-    stop("'reprod.way' should be 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro' or 'userped'!")
+    stop("'reprod.way' should be 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro' or 'userped'!")
   }
 
+  SP$global$useAllGeno <- TRUE
+  SP <- phenotype(SP)
+  
   return(SP)
 }
 
@@ -114,13 +125,13 @@ reproduces <- function(SP, ncpus = 0, verbose = TRUE) {
 #' @param pop.geno the genotype data.
 #' @param index.sir the indice of sires.
 #' @param index.dam the indice of dams.
-#' @param incols '1':one-column genotype represents an individual; '2': two-column genotype represents an individual.
 #' @param ncpus the number of threads used, if NULL, (logical core number - 1) is automatically used.
 #'
 #' @return a genotype matrix after mating
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate the genotype data
 #' SP <- param.geno(pop.marker = 1e4, pop.ind = 1e2)
 #' SP <- genotype(SP)
@@ -134,31 +145,26 @@ reproduces <- function(SP, ncpus = 0, verbose = TRUE) {
 #' geno.curr <- mate(pop.geno = pop.geno, index.sir = index.sir,
 #'                   index.dam = index.dam)
 #' geno.curr[1:5, 1:5]
-mate <- function(pop.geno, index.sir, index.dam, incols = 1, ncpus = 0) {
+#' }
+mate <- function(pop.geno, index.sir, index.dam, ncpus = 0) {
   
   pop.marker <- nrow(pop.geno)
   pop.geno.curr <- big.matrix(
       nrow = pop.marker,
-      ncol = length(index.dam) * incols,
+      ncol = length(index.dam) * 2,
       init = 3,
       type = "char"
   )
 
-  if (incols == 2) {
-    s1 <- sample(c(0, 1), size = length(index.dam), replace=TRUE)
-    s2 <- sample(c(0, 1), size = length(index.dam), replace=TRUE)
-    gmt.sir <- index.sir * 2 - s1
-    gmt.dam <- index.dam * 2 - s2
-    gmt.comb <- c(gmt.sir, gmt.dam)
-    gmt.comb[seq(1, length(gmt.comb), 2)] <- gmt.sir
-    gmt.comb[seq(2, length(gmt.comb), 2)] <- gmt.dam
-    
-    BigMat2BigMat(pop.geno.curr@address, pop.geno@address, colIdx = gmt.comb, threads = ncpus)
-    
-  } else {
-    # mix parent genotype to generate progeny genotype
-    GenoMixer(pop.geno.curr@address, pop.geno@address, index.sir, index.dam, threads = ncpus)
-  }
+  s1 <- sample(c(0, 1), size = length(index.dam), replace = TRUE)
+  s2 <- sample(c(0, 1), size = length(index.dam), replace = TRUE)
+  gmt.sir <- index.sir * 2 - s1
+  gmt.dam <- index.dam * 2 - s2
+  gmt.comb <- c(gmt.sir, gmt.dam)
+  gmt.comb[seq(1, length(gmt.comb), 2)] <- gmt.sir
+  gmt.comb[seq(2, length(gmt.comb), 2)] <- gmt.dam
+  
+  BigMat2BigMat(pop.geno.curr@address, pop.geno@address, colIdx = gmt.comb, threads = ncpus)
   
   return(pop.geno.curr)
 }
@@ -180,7 +186,7 @@ mate <- function(pop.geno, index.sir, index.dam, incols = 1, ncpus = 0) {
 #' the function returns a list containing
 #' \describe{
 #' \item{$reprod$pop.gen}{the generations of simulated population.}
-#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
 #' \item{$reprod$sex.rate}{the sex ratio of simulated population.}
 #' \item{$reprod$prog}{the progeny number of an individual.}
 #' \item{$geno}{a list of genotype simulation parameters.}
@@ -190,6 +196,7 @@ mate <- function(pop.geno, index.sir, index.dam, incols = 1, ncpus = 0) {
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate annotation simulation parameters
 #' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
@@ -197,7 +204,7 @@ mate <- function(pop.geno, index.sir, index.dam, incols = 1, ncpus = 0) {
 #' # Generate phenotype simulation parameters
 #' SP <- param.pheno(SP = SP, pop.ind = 100)
 #' # Generate selection parameters
-#' SP <- param.sel(SP = SP, sel.single = "comb")
+#' SP <- param.sel(SP = SP, sel.single = "ind")
 #' # Generate reproduction parameters
 #' SP <- param.reprod(SP = SP, reprod.way = "clone")
 #' 
@@ -211,6 +218,7 @@ mate <- function(pop.geno, index.sir, index.dam, incols = 1, ncpus = 0) {
 #' SP <- selects(SP)
 #' # Run clone
 #' SP <- mate.clone(SP)
+#' }
 mate.clone <- function(SP, ncpus = 0, verbose = TRUE) {
   
   # reproduction parameters
@@ -277,8 +285,8 @@ mate.clone <- function(SP, ncpus = 0, verbose = TRUE) {
       names(SP$pheno$pop)[length(SP$pheno$pop)] <- paste0("gen", length(SP$pheno$pop))
     
     ### phenotype and selection ###
-    SP <- phenotype(SP)
-    SP <- selects(SP)
+    SP <- phenotype(SP, verbose = FALSE)
+    SP <- selects(SP, verbose = FALSE)
     count.ind <- c(count.ind, nrow(pop.curr))
     logging.log(" After generation", i + 1, ",", sum(count.ind[1:(i + 1)]), "individuals are generated...\n", verbose = verbose)
   }
@@ -303,7 +311,7 @@ mate.clone <- function(SP, ncpus = 0, verbose = TRUE) {
 #' the function returns a list containing
 #' \describe{
 #' \item{$reprod$pop.gen}{the generations of simulated population.}
-#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
 #' \item{$reprod$sex.rate}{the sex ratio of simulated population.}
 #' \item{$reprod$prog}{the progeny number of an individual.}
 #' \item{$geno}{a list of genotype simulation parameters.}
@@ -313,6 +321,7 @@ mate.clone <- function(SP, ncpus = 0, verbose = TRUE) {
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate annotation simulation parameters
 #' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
@@ -320,7 +329,7 @@ mate.clone <- function(SP, ncpus = 0, verbose = TRUE) {
 #' # Generate phenotype simulation parameters
 #' SP <- param.pheno(SP = SP, pop.ind = 100)
 #' # Generate selection parameters
-#' SP <- param.sel(SP = SP, sel.single = "comb")
+#' SP <- param.sel(SP = SP, sel.single = "ind")
 #' # Generate reproduction parameters
 #' SP <- param.reprod(SP = SP, reprod.way = "dh")
 #' 
@@ -334,6 +343,7 @@ mate.clone <- function(SP, ncpus = 0, verbose = TRUE) {
 #' SP <- selects(SP)
 #' # Run doubled haploid
 #' SP <- mate.dh(SP)
+#' }
 mate.dh <- function(SP, ncpus = 0, verbose = TRUE) {
 
   # reproduction parameters
@@ -404,8 +414,8 @@ mate.dh <- function(SP, ncpus = 0, verbose = TRUE) {
       names(SP$pheno$pop)[length(SP$pheno$pop)] <- paste0("gen", length(SP$pheno$pop))
     
     ### phenotype and selection ###
-    SP <- phenotype(SP)
-    SP <- selects(SP)
+    SP <- phenotype(SP, verbose = FALSE)
+    SP <- selects(SP, verbose = FALSE)
     count.ind <- c(count.ind, nrow(pop.curr))
     logging.log(" After generation", i + 1, ",", sum(count.ind[1:(i + 1)]), "individuals are generated...\n", verbose = verbose)
   }
@@ -430,7 +440,7 @@ mate.dh <- function(SP, ncpus = 0, verbose = TRUE) {
 #' the function returns a list containing
 #' \describe{
 #' \item{$reprod$pop.gen}{the generations of simulated population.}
-#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
 #' \item{$reprod$sex.rate}{the sex ratio of simulated population.}
 #' \item{$reprod$prog}{the progeny number of an individual.}
 #' \item{$geno}{a list of genotype simulation parameters.}
@@ -440,6 +450,7 @@ mate.dh <- function(SP, ncpus = 0, verbose = TRUE) {
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate annotation simulation parameters
 #' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
@@ -447,7 +458,7 @@ mate.dh <- function(SP, ncpus = 0, verbose = TRUE) {
 #' # Generate phenotype simulation parameters
 #' SP <- param.pheno(SP = SP, pop.ind = 100)
 #' # Generate selection parameters
-#' SP <- param.sel(SP = SP, sel.single = "comb")
+#' SP <- param.sel(SP = SP, sel.single = "ind")
 #' # Generate reproduction parameters
 #' SP <- param.reprod(SP = SP, reprod.way = "selfpol")
 #' 
@@ -461,6 +472,7 @@ mate.dh <- function(SP, ncpus = 0, verbose = TRUE) {
 #' SP <- selects(SP)
 #' # Run self-pollination
 #' SP <- mate.selfpol(SP)
+#' }
 mate.selfpol <- function(SP, ncpus = 0, verbose = TRUE) {
 
   # reproduction parameters
@@ -473,7 +485,6 @@ mate.selfpol <- function(SP, ncpus = 0, verbose = TRUE) {
     pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
     pop.geno.id <- pop[, 1]
     pop.geno <- SP$geno$pop.geno[[length(SP$geno$pop.geno)]]
-    incols <- SP$geno$incols
     pop.sel <- SP$sel$pop.sel[[length(SP$sel$pop.sel)]]
     if (is.null(pop.sel)) {
       ind.sir <- pop$index[pop$sex == 1 | pop$sex == 0]
@@ -492,7 +503,7 @@ mate.selfpol <- function(SP, ncpus = 0, verbose = TRUE) {
     index.sir <- match(ped.dam, pop.geno.id)
     index.dam <- match(ped.dam, pop.geno.id)
     
-    pop.geno.curr <- mate(pop.geno = pop.geno, incols = incols, index.sir = index.sir, index.dam = index.dam, ncpus=  ncpus)
+    pop.geno.curr <- mate(pop.geno = pop.geno, index.sir = index.sir, index.dam = index.dam, ncpus=  ncpus)
     
     sex <- rep(0, length(index.dam))
     index <- seq(pop$index[length(pop$index)]+1, length.out = length(ped.dam))
@@ -506,8 +517,8 @@ mate.selfpol <- function(SP, ncpus = 0, verbose = TRUE) {
       names(SP$pheno$pop)[length(SP$pheno$pop)] <- paste0("gen", length(SP$pheno$pop))
     
     ### phenotype and selection ###
-    SP <- phenotype(SP)
-    SP <- selects(SP)
+    SP <- phenotype(SP, verbose = FALSE)
+    SP <- selects(SP, verbose = FALSE)
     count.ind <- c(count.ind, nrow(pop.curr))
     logging.log(" After generation", i + 1, ",", sum(count.ind[1:(i + 1)]), "individuals are generated...\n", verbose = verbose)
   }
@@ -532,7 +543,7 @@ mate.selfpol <- function(SP, ncpus = 0, verbose = TRUE) {
 #' the function returns a list containing
 #' \describe{
 #' \item{$reprod$pop.gen}{the generations of simulated population.}
-#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
 #' \item{$reprod$sex.rate}{the sex ratio of simulated population.}
 #' \item{$reprod$prog}{the progeny number of an individual.}
 #' \item{$geno}{a list of genotype simulation parameters.}
@@ -542,6 +553,7 @@ mate.selfpol <- function(SP, ncpus = 0, verbose = TRUE) {
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate annotation simulation parameters
 #' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
@@ -549,7 +561,7 @@ mate.selfpol <- function(SP, ncpus = 0, verbose = TRUE) {
 #' # Generate phenotype simulation parameters
 #' SP <- param.pheno(SP = SP, pop.ind = 100)
 #' # Generate selection parameters
-#' SP <- param.sel(SP = SP, sel.single = "comb")
+#' SP <- param.sel(SP = SP, sel.single = "ind")
 #' # Generate reproduction parameters
 #' SP <- param.reprod(SP = SP, reprod.way = "randmate")
 #' 
@@ -563,6 +575,7 @@ mate.selfpol <- function(SP, ncpus = 0, verbose = TRUE) {
 #' SP <- selects(SP)
 #' # Run random mating
 #' SP <- mate.randmate(SP)
+#' }
 mate.randmate <- function(SP, ncpus = 0, verbose = TRUE) {
   
   # reproduction parameters
@@ -575,7 +588,6 @@ mate.randmate <- function(SP, ncpus = 0, verbose = TRUE) {
     pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
     pop.geno.id <- pop[, 1]
     pop.geno <- SP$geno$pop.geno[[length(SP$geno$pop.geno)]]
-    incols <- SP$geno$incols
     pop.sel <- SP$sel$pop.sel[[length(SP$sel$pop.sel)]]
     if (is.null(pop.sel)) {
       ind.sir <- pop$index[pop$sex == 1 | pop$sex == 0]
@@ -596,7 +608,7 @@ mate.randmate <- function(SP, ncpus = 0, verbose = TRUE) {
     index.sir <- match(ped.sir, pop.geno.id)
     index.dam <- match(ped.dam, pop.geno.id)
     
-    pop.geno.curr <- mate(pop.geno = pop.geno, incols = incols, index.sir = index.sir, index.dam = index.dam, ncpus = ncpus)
+    pop.geno.curr <- mate(pop.geno = pop.geno, index.sir = index.sir, index.dam = index.dam, ncpus = ncpus)
     
     if (all(pop$sex == 0)) {
       sex <- rep(0, length(ped.dam))
@@ -615,9 +627,9 @@ mate.randmate <- function(SP, ncpus = 0, verbose = TRUE) {
       names(SP$pheno$pop)[length(SP$pheno$pop)] <- paste0("gen", length(SP$pheno$pop))
     
     ### genotype, phenotype, and selection ###
-    SP <- genotype(SP)
-    SP <- phenotype(SP)
-    SP <- selects(SP)
+    SP <- genotype(SP, verbose = FALSE)
+    SP <- phenotype(SP, verbose = FALSE)
+    SP <- selects(SP, verbose = FALSE)
     count.ind <- c(count.ind, nrow(pop.curr))
     logging.log(" After generation", i + 1, ",", sum(count.ind[1:(i + 1)]), "individuals are generated...\n", verbose = verbose)
   }
@@ -642,7 +654,7 @@ mate.randmate <- function(SP, ncpus = 0, verbose = TRUE) {
 #' the function returns a list containing
 #' \describe{
 #' \item{$reprod$pop.gen}{the generations of simulated population.}
-#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
 #' \item{$reprod$sex.rate}{the sex ratio of simulated population.}
 #' \item{$reprod$prog}{the progeny number of an individual.}
 #' \item{$geno}{a list of genotype simulation parameters.}
@@ -652,6 +664,7 @@ mate.randmate <- function(SP, ncpus = 0, verbose = TRUE) {
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate annotation simulation parameters
 #' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
@@ -659,7 +672,7 @@ mate.randmate <- function(SP, ncpus = 0, verbose = TRUE) {
 #' # Generate phenotype simulation parameters
 #' SP <- param.pheno(SP = SP, pop.ind = 100)
 #' # Generate selection parameters
-#' SP <- param.sel(SP = SP, sel.single = "comb")
+#' SP <- param.sel(SP = SP, sel.single = "ind")
 #' # Generate reproduction parameters
 #' SP <- param.reprod(SP = SP, reprod.way = "randexself")
 #' 
@@ -673,6 +686,7 @@ mate.randmate <- function(SP, ncpus = 0, verbose = TRUE) {
 #' SP <- selects(SP)
 #' # Run random mating excluding self-pollination
 #' SP <- mate.randexself(SP)
+#' }
 mate.randexself <- function(SP, ncpus = 0, verbose = TRUE) {
   
   # reproduction parameters
@@ -685,7 +699,6 @@ mate.randexself <- function(SP, ncpus = 0, verbose = TRUE) {
     pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
     pop.geno.id <- pop[, 1]
     pop.geno <- SP$geno$pop.geno[[length(SP$geno$pop.geno)]]
-    incols <- SP$geno$incols
     pop.sel <- SP$sel$pop.sel[[length(SP$sel$pop.sel)]]
     if (is.null(pop.sel)) {
       ind.sir <- pop$index[pop$sex == 1 | pop$sex == 0]
@@ -716,7 +729,7 @@ mate.randexself <- function(SP, ncpus = 0, verbose = TRUE) {
     index.sir <- match(ped.sir, pop.geno.id)
     index.dam <- match(ped.dam, pop.geno.id)
     
-    pop.geno.curr <- mate(pop.geno = pop.geno, incols = incols, index.sir = index.sir, index.dam = index.dam, ncpus = ncpus)
+    pop.geno.curr <- mate(pop.geno = pop.geno, index.sir = index.sir, index.dam = index.dam, ncpus = ncpus)
     
     if (all(pop$sex == 0)) {
       sex <- rep(0, length(ped.dam))
@@ -735,9 +748,233 @@ mate.randexself <- function(SP, ncpus = 0, verbose = TRUE) {
       names(SP$pheno$pop)[length(SP$pheno$pop)] <- paste0("gen", length(SP$pheno$pop))
     
     ### genotype, phenotype, and selection ###
-    SP <- genotype(SP)
-    SP <- phenotype(SP)
-    SP <- selects(SP)
+    SP <- genotype(SP, verbose = FALSE)
+    SP <- phenotype(SP, verbose = FALSE)
+    SP <- selects(SP, verbose = FALSE)
+    count.ind <- c(count.ind, nrow(pop.curr))
+    logging.log(" After generation", i + 1, ",", sum(count.ind[1:(i + 1)]), "individuals are generated...\n", verbose = verbose)
+  }
+  
+  return(SP)
+}
+
+#' Assortative mating
+#' 
+#' Produce individuals by assortative mating.
+#'
+#' Build date: Sep 30, 2022
+#' Last update: Sep 30, 2022
+#'
+#' @author Dong Yin
+#'
+#' @param SP a list of all simulation parameters.
+#' @param ncpus the number of threads used, if NULL, (logical core number - 1) is automatically used.
+#' @param verbose whether to print detail.
+#'
+#' @return
+#' the function returns a list containing
+#' \describe{
+#' \item{$reprod$pop.gen}{the generations of simulated population.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$sex.rate}{the sex ratio of simulated population.}
+#' \item{$reprod$prog}{the progeny number of an individual.}
+#' \item{$geno}{a list of genotype simulation parameters.}
+#' \item{$pheno}{a list of phenotype simulation parameters.}
+#' }
+#' 
+#' @export
+#'
+#' @examples
+#' \donttest{
+#' # Generate annotation simulation parameters
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
+#' # Generate genotype simulation parameters
+#' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+#' # Generate phenotype simulation parameters
+#' SP <- param.pheno(SP = SP, pop.ind = 100)
+#' # Generate selection parameters
+#' SP <- param.sel(SP = SP, sel.single = "ind")
+#' # Generate reproduction parameters
+#' SP <- param.reprod(SP = SP, reprod.way = "assort")
+#' 
+#' # Run annotation simulation
+#' SP <- annotation(SP)
+#' # Run genotype simulation
+#' SP <- genotype(SP)
+#' # Run phenotype simulation
+#' SP <- phenotype(SP)
+#' # Run selection
+#' SP <- selects(SP)
+#' # Run random mating
+#' SP <- mate.assort(SP)
+#' }
+mate.assort <- function(SP, ncpus = 0, verbose = TRUE) {
+  
+  # reproduction parameters
+  pop.gen <- SP$reprod$pop.gen - 1
+  count.ind <- nrow(SP$pheno$pop[[length(SP$pheno$pop)]])
+  logging.log(" After generation", 1, ",", sum(count.ind[1:1]), "individuals are generated...\n", verbose = verbose)
+  if (pop.gen == 0) return(SP)
+  
+  for (i in 1:pop.gen) {
+    pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
+    pop.geno.id <- pop[, 1]
+    pop.geno <- SP$geno$pop.geno[[length(SP$geno$pop.geno)]]
+    pop.sel <- SP$sel$pop.sel[[length(SP$sel$pop.sel)]]
+    if (is.null(pop.sel)) {
+      ind.sir <- pop$index[pop$sex == 1 | pop$sex == 0]
+      ind.dam <- pop$index[pop$sex == 2 | pop$sex == 0]
+      pop.sel <- list(sir = ind.sir , dam = ind.dam)
+    }
+    sex.rate <- SP$reprod$sex.rate
+    prog <- SP$reprod$prog
+    
+    ped.sir <- pop.sel$sir
+    ped.dam <- pop.sel$dam
+    if (length(ped.sir) == 1) ped.sir <- rep(ped.sir, 2)
+    ped.sir.tmp <- sample(ped.sir, size = length(ped.dam), replace = TRUE)
+    ped.sir <- ped.sir.tmp[order(match(ped.sir.tmp, ped.sir), decreasing = FALSE)]
+    ped.sir <- rep(ped.sir, each = prog)
+    ped.dam <- rep(ped.dam, each = prog)
+    pop.ind <- length(ped.dam)
+    
+    index.sir <- match(ped.sir, pop.geno.id)
+    index.dam <- match(ped.dam, pop.geno.id)
+    
+    pop.geno.curr <- mate(pop.geno = pop.geno, index.sir = index.sir, index.dam = index.dam, ncpus = ncpus)
+    
+    if (all(pop$sex == 0)) {
+      sex <- rep(0, length(ped.dam))
+    } else {
+      sex <- rep(2, pop.ind)
+      sex[sample(1:pop.ind, pop.ind * sex.rate)] <- 1
+    }
+    index <- seq(pop$index[length(pop$index)]+1, length.out = pop.ind)
+    fam.temp <- getfam(ped.sir, ped.dam, pop$fam[length(pop$fam)]+1, "pm")
+    gen <- rep(pop$gen[1]+1, pop.ind)
+    pop.curr <- data.frame(index = index, gen = gen, fam = fam.temp[, 1], infam = fam.temp[, 2], sir = ped.sir, dam = ped.dam, sex = sex)
+    
+    SP$geno$pop.geno[[length(SP$geno$pop.geno) + 1]] <- pop.geno.curr
+    SP$pheno$pop[[length(SP$pheno$pop) + 1]] <- pop.curr
+    names(SP$geno$pop.geno)[length(SP$geno$pop.geno)] <- 
+      names(SP$pheno$pop)[length(SP$pheno$pop)] <- paste0("gen", length(SP$pheno$pop))
+    
+    ### genotype, phenotype, and selection ###
+    SP <- genotype(SP, verbose = FALSE)
+    SP <- phenotype(SP, verbose = FALSE)
+    SP <- selects(SP, verbose = FALSE)
+    count.ind <- c(count.ind, nrow(pop.curr))
+    logging.log(" After generation", i + 1, ",", sum(count.ind[1:(i + 1)]), "individuals are generated...\n", verbose = verbose)
+  }
+  
+  return(SP)
+}
+
+#' Disassortative mating
+#' 
+#' Produce individuals by disassortative mating.
+#'
+#' Build date: Sep 30, 2022
+#' Last update: Sep 30, 2022
+#'
+#' @author Dong Yin
+#'
+#' @param SP a list of all simulation parameters.
+#' @param ncpus the number of threads used, if NULL, (logical core number - 1) is automatically used.
+#' @param verbose whether to print detail.
+#'
+#' @return
+#' the function returns a list containing
+#' \describe{
+#' \item{$reprod$pop.gen}{the generations of simulated population.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$sex.rate}{the sex ratio of simulated population.}
+#' \item{$reprod$prog}{the progeny number of an individual.}
+#' \item{$geno}{a list of genotype simulation parameters.}
+#' \item{$pheno}{a list of phenotype simulation parameters.}
+#' }
+#' 
+#' @export
+#'
+#' @examples
+#' \donttest{
+#' # Generate annotation simulation parameters
+#' SP <- param.annot(qtn.num = list(tr1 = 10))
+#' # Generate genotype simulation parameters
+#' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
+#' # Generate phenotype simulation parameters
+#' SP <- param.pheno(SP = SP, pop.ind = 100)
+#' # Generate selection parameters
+#' SP <- param.sel(SP = SP, sel.single = "ind")
+#' # Generate reproduction parameters
+#' SP <- param.reprod(SP = SP, reprod.way = "disassort")
+#' 
+#' # Run annotation simulation
+#' SP <- annotation(SP)
+#' # Run genotype simulation
+#' SP <- genotype(SP)
+#' # Run phenotype simulation
+#' SP <- phenotype(SP)
+#' # Run selection
+#' SP <- selects(SP)
+#' # Run random mating
+#' SP <- mate.assort(SP)
+#' }
+mate.disassort <- function(SP, ncpus = 0, verbose = TRUE) {
+  
+  # reproduction parameters
+  pop.gen <- SP$reprod$pop.gen - 1
+  count.ind <- nrow(SP$pheno$pop[[length(SP$pheno$pop)]])
+  logging.log(" After generation", 1, ",", sum(count.ind[1:1]), "individuals are generated...\n", verbose = verbose)
+  if (pop.gen == 0) return(SP)
+  
+  for (i in 1:pop.gen) {
+    pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
+    pop.geno.id <- pop[, 1]
+    pop.geno <- SP$geno$pop.geno[[length(SP$geno$pop.geno)]]
+    pop.sel <- SP$sel$pop.sel[[length(SP$sel$pop.sel)]]
+    if (is.null(pop.sel)) {
+      ind.sir <- pop$index[pop$sex == 1 | pop$sex == 0]
+      ind.dam <- pop$index[pop$sex == 2 | pop$sex == 0]
+      pop.sel <- list(sir = ind.sir , dam = ind.dam)
+    }
+    sex.rate <- SP$reprod$sex.rate
+    prog <- SP$reprod$prog
+    
+    ped.sir <- pop.sel$sir
+    ped.dam <- pop.sel$dam
+    if (length(ped.sir) == 1) ped.sir <- rep(ped.sir, 2)
+    ped.sir.tmp <- sample(ped.sir, size = length(ped.dam), replace = TRUE)
+    ped.sir <- ped.sir.tmp[order(match(ped.sir.tmp, ped.sir), decreasing = TRUE)]
+    ped.sir <- rep(ped.sir, each = prog)
+    ped.dam <- rep(ped.dam, each = prog)
+    pop.ind <- length(ped.dam)
+    
+    index.sir <- match(ped.sir, pop.geno.id)
+    index.dam <- match(ped.dam, pop.geno.id)
+    
+    pop.geno.curr <- mate(pop.geno = pop.geno, index.sir = index.sir, index.dam = index.dam, ncpus = ncpus)
+    
+    if (all(pop$sex == 0)) {
+      sex <- rep(0, length(ped.dam))
+    } else {
+      sex <- rep(2, pop.ind)
+      sex[sample(1:pop.ind, pop.ind * sex.rate)] <- 1
+    }
+    index <- seq(pop$index[length(pop$index)]+1, length.out = pop.ind)
+    fam.temp <- getfam(ped.sir, ped.dam, pop$fam[length(pop$fam)]+1, "pm")
+    gen <- rep(pop$gen[1]+1, pop.ind)
+    pop.curr <- data.frame(index = index, gen = gen, fam = fam.temp[, 1], infam = fam.temp[, 2], sir = ped.sir, dam = ped.dam, sex = sex)
+    
+    SP$geno$pop.geno[[length(SP$geno$pop.geno) + 1]] <- pop.geno.curr
+    SP$pheno$pop[[length(SP$pheno$pop) + 1]] <- pop.curr
+    names(SP$geno$pop.geno)[length(SP$geno$pop.geno)] <- 
+      names(SP$pheno$pop)[length(SP$pheno$pop)] <- paste0("gen", length(SP$pheno$pop))
+    
+    ### genotype, phenotype, and selection ###
+    SP <- genotype(SP, verbose = FALSE)
+    SP <- phenotype(SP, verbose = FALSE)
+    SP <- selects(SP, verbose = FALSE)
     count.ind <- c(count.ind, nrow(pop.curr))
     logging.log(" After generation", i + 1, ",", sum(count.ind[1:(i + 1)]), "individuals are generated...\n", verbose = verbose)
   }
@@ -762,7 +999,7 @@ mate.randexself <- function(SP, ncpus = 0, verbose = TRUE) {
 #' the function returns a list containing
 #' \describe{
 #' \item{$reprod$pop.gen}{the generations of simulated population.}
-#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
 #' \item{$reprod$sex.rate}{the sex ratio of simulated population.}
 #' \item{$reprod$prog}{the progeny number of an individual.}
 #' \item{$geno}{a list of genotype simulation parameters.}
@@ -772,6 +1009,7 @@ mate.randexself <- function(SP, ncpus = 0, verbose = TRUE) {
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate annotation simulation parameters
 #' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
@@ -779,7 +1017,7 @@ mate.randexself <- function(SP, ncpus = 0, verbose = TRUE) {
 #' # Generate phenotype simulation parameters
 #' SP <- param.pheno(SP = SP, pop.ind = 100)
 #' # Generate selection parameters
-#' SP <- param.sel(SP = SP, sel.single = "comb")
+#' SP <- param.sel(SP = SP, sel.single = "ind")
 #' # Generate reproduction parameters
 #' SP <- param.reprod(SP = SP, reprod.way = "2waycro")
 #' 
@@ -795,6 +1033,7 @@ mate.randexself <- function(SP, ncpus = 0, verbose = TRUE) {
 #' SP <- selects(SP)
 #' # Run two-way cross
 #' SP <- mate.2waycro(SP)
+#' }
 mate.2waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   
   count.ind <- NULL
@@ -804,7 +1043,6 @@ mate.2waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
   pop.geno.id <- pop[, 1]
   pop.geno <- SP$geno$pop.geno[[length(SP$geno$pop.geno)]]
-  incols <- SP$geno$incols
   pop.sel <- SP$sel$pop.sel[[length(SP$sel$pop.sel)]]
   if (is.null(pop.sel)) {
     ind.sir <- pop$index[pop$sex == 1]
@@ -828,7 +1066,7 @@ mate.2waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   index.sir <- match(ped.sir, pop.geno.id)
   index.dam <- match(ped.dam, pop.geno.id)
   
-  pop.geno.curr <- mate(pop.geno = pop.geno, incols = incols, index.sir = index.sir, index.dam = index.dam, ncpus = ncpus)
+  pop.geno.curr <- mate(pop.geno = pop.geno, index.sir = index.sir, index.dam = index.dam, ncpus = ncpus)
   
   sex <- rep(2, pop.ind)
   sex[sample(1:pop.ind, pop.ind * sex.rate)] <- 1
@@ -843,9 +1081,9 @@ mate.2waycro <- function(SP, ncpus = 0, verbose = TRUE) {
     names(SP$pheno$pop)[length(SP$pheno$pop)] <- paste0("gen", length(SP$pheno$pop))
   
   ### genotype, phenotype, and selection ###
-  SP <- genotype(SP)
-  SP <- phenotype(SP)
-  SP <- selects(SP)
+  SP <- genotype(SP, verbose = FALSE)
+  SP <- phenotype(SP, verbose = FALSE)
+  SP <- selects(SP, verbose = FALSE)
   count.ind <- c(count.ind, nrow(pop.curr))
   logging.log(" After generation", 2, ",", sum(count.ind[1:2]), "individuals are generated...\n", verbose = verbose)
   
@@ -869,7 +1107,7 @@ mate.2waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' the function returns a list containing
 #' \describe{
 #' \item{$reprod$pop.gen}{the generations of simulated population.}
-#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
 #' \item{$reprod$sex.rate}{the sex ratio of simulated population.}
 #' \item{$reprod$prog}{the progeny number of an individual.}
 #' \item{$geno}{a list of genotype simulation parameters.}
@@ -879,6 +1117,7 @@ mate.2waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate annotation simulation parameters
 #' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
@@ -886,7 +1125,7 @@ mate.2waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' # Generate phenotype simulation parameters
 #' SP <- param.pheno(SP = SP, pop.ind = 100)
 #' # Generate selection parameters
-#' SP <- param.sel(SP = SP, sel.single = "comb")
+#' SP <- param.sel(SP = SP, sel.single = "ind")
 #' # Generate reproduction parameters
 #' SP <- param.reprod(SP = SP, reprod.way = "3waycro")
 #' 
@@ -902,6 +1141,7 @@ mate.2waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' SP <- selects(SP)
 #' # Run three-way cross
 #' SP <- mate.3waycro(SP)
+#' }
 mate.3waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   
   count.ind <- NULL
@@ -911,7 +1151,6 @@ mate.3waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
   pop.geno.id <- pop[, 1]
   pop.geno <- SP$geno$pop.geno[[length(SP$geno$pop.geno)]]
-  incols <- SP$geno$incols
   pop.sel <- SP$sel$pop.sel[[length(SP$sel$pop.sel)]]
   if (is.null(pop.sel)) {
     ind.sir <- pop$index[pop$sex == 1]
@@ -944,7 +1183,7 @@ mate.3waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   index.sir1 <- match(ped.sir1, pop.geno.id)
   index.dam1 <- match(ped.dam1, pop.geno.id)
   
-  pop.geno.dam2 <- mate(pop.geno = pop.geno, incols = incols, index.sir = index.sir1, index.dam = index.dam1, ncpus = ncpus)
+  pop.geno.dam2 <- mate(pop.geno = pop.geno, index.sir = index.sir1, index.dam = index.dam1, ncpus = ncpus)
   
   sex <- rep(2, pop.ind)
   sex[sample(1:pop.ind, pop.ind * sex.rate)] <- 1
@@ -959,14 +1198,14 @@ mate.3waycro <- function(SP, ncpus = 0, verbose = TRUE) {
     names(SP$pheno$pop)[length(SP$pheno$pop)] <- paste0("gen", length(SP$pheno$pop))
   
   ### genotype, phenotype, and selection ###
-  SP <- genotype(SP)
-  SP <- phenotype(SP)
-  SP <- selects(SP)
+  SP <- genotype(SP, verbose = FALSE)
+  SP <- phenotype(SP, verbose = FALSE)
+  SP <- selects(SP, verbose = FALSE)
   pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
   pop.geno.id <- c(pop.geno.id, pop[, 1])
   pop.geno.curr <- big.matrix(
     nrow = nrow(pop.geno),
-    ncol = length(pop.geno.id),
+    ncol = ncol(pop.geno) + ncol(pop.geno.dam2),
     init = 3,
     type = "char")
   BigMat2BigMat(pop.geno.curr@address, pop.geno@address, colIdx = 1:ncol(pop.geno), threads = ncpus)
@@ -987,7 +1226,7 @@ mate.3waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   index.sir2 <- match(ped.sir2, pop.geno.id)
   index.dam2 <- match(ped.dam2, pop.geno.id)
   
-  pop.geno.curr <- mate(pop.geno = pop.geno.curr, incols = incols, index.sir = index.sir2, index.dam = index.dam2, ncpus = ncpus)
+  pop.geno.curr <- mate(pop.geno = pop.geno.curr, index.sir = index.sir2, index.dam = index.dam2, ncpus = ncpus)
   
   sex <- rep(2, pop.ind)
   sex[sample(1:pop.ind, pop.ind * sex.rate)] <- 1
@@ -1002,9 +1241,9 @@ mate.3waycro <- function(SP, ncpus = 0, verbose = TRUE) {
     names(SP$pheno$pop)[length(SP$pheno$pop)] <- paste0("gen", length(SP$pheno$pop))
   
   ### genotype, phenotype, and selection ###
-  SP <- genotype(SP)
-  SP <- phenotype(SP)
-  SP <- selects(SP)
+  SP <- genotype(SP, verbose = FALSE)
+  SP <- phenotype(SP, verbose = FALSE)
+  SP <- selects(SP, verbose = FALSE)
   count.ind <- c(count.ind, nrow(pop.curr))
   logging.log(" After generation", 3, ",", sum(count.ind[1:3]), "individuals are generated...\n", verbose = verbose)
   
@@ -1028,7 +1267,7 @@ mate.3waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' the function returns a list containing
 #' \describe{
 #' \item{$reprod$pop.gen}{the generations of simulated population.}
-#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
 #' \item{$reprod$sex.rate}{the sex ratio of simulated population.}
 #' \item{$reprod$prog}{the progeny number of an individual.}
 #' \item{$geno}{a list of genotype simulation parameters.}
@@ -1038,6 +1277,7 @@ mate.3waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate annotation simulation parameters
 #' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
@@ -1045,7 +1285,7 @@ mate.3waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' # Generate phenotype simulation parameters
 #' SP <- param.pheno(SP = SP, pop.ind = 100)
 #' # Generate selection parameters
-#' SP <- param.sel(SP = SP, sel.single = "comb")
+#' SP <- param.sel(SP = SP, sel.single = "ind")
 #' # Generate reproduction parameters
 #' SP <- param.reprod(SP = SP, reprod.way = "4waycro")
 #' 
@@ -1061,6 +1301,7 @@ mate.3waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' SP <- selects(SP)
 #' # Run four-way cross
 #' SP <- mate.4waycro(SP)
+#' }
 mate.4waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   
   count.ind <- NULL
@@ -1070,7 +1311,6 @@ mate.4waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
   pop.geno.id <- pop[, 1]
   pop.geno <- SP$geno$pop.geno[[length(SP$geno$pop.geno)]]
-  incols <- SP$geno$incols
   pop.sel <- SP$sel$pop.sel[[length(SP$sel$pop.sel)]]
   if (is.null(pop.sel)) {
     ind.sir <- pop$index[pop$sex == 1]
@@ -1110,8 +1350,8 @@ mate.4waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   index.sir2 <- match(ped.sir2, pop.geno.id)
   index.dam2 <- match(ped.dam2, pop.geno.id)
   
-  pop.geno.sir11 <- mate(pop.geno = pop.geno, incols = incols, index.sir = index.sir1, index.dam = index.dam1, ncpus = ncpus)
-  pop.geno.dam22 <- mate(pop.geno = pop.geno, incols = incols, index.sir = index.sir2, index.dam = index.dam2, ncpus = ncpus)
+  pop.geno.sir11 <- mate(pop.geno = pop.geno, index.sir = index.sir1, index.dam = index.dam1, ncpus = ncpus)
+  pop.geno.dam22 <- mate(pop.geno = pop.geno, index.sir = index.sir2, index.dam = index.dam2, ncpus = ncpus)
   pop.geno.curr <- big.matrix(
     nrow = nrow(pop.geno),
     ncol = ncol(pop.geno.sir11) + ncol(pop.geno.dam22),
@@ -1133,9 +1373,9 @@ mate.4waycro <- function(SP, ncpus = 0, verbose = TRUE) {
     names(SP$pheno$pop)[length(SP$pheno$pop)] <- paste0("gen", length(SP$pheno$pop))
   
   ### genotype, phenotype, and selection ###
-  SP <- genotype(SP)
-  SP <- phenotype(SP)
-  SP <- selects(SP)
+  SP <- genotype(SP, verbose = FALSE)
+  SP <- phenotype(SP, verbose = FALSE)
+  SP <- selects(SP, verbose = FALSE)
   pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
   pop.geno.id <- pop[, 1]
   pop.sel <- SP$sel$pop.sel[[length(SP$sel$pop.sel)]]
@@ -1155,7 +1395,7 @@ mate.4waycro <- function(SP, ncpus = 0, verbose = TRUE) {
   index.sir11 <- match(ped.sir11, pop.geno.id)
   index.dam22 <- match(ped.dam22, pop.geno.id)
   
-  pop.geno.curr <- mate(pop.geno = pop.geno.curr, incols = incols, index.sir = index.sir11, index.dam = index.dam22, ncpus = ncpus)
+  pop.geno.curr <- mate(pop.geno = pop.geno.curr, index.sir = index.sir11, index.dam = index.dam22, ncpus = ncpus)
   
   sex <- rep(2, pop.ind)
   sex[sample(1:pop.ind, pop.ind * sex.rate)] <- 1
@@ -1170,9 +1410,9 @@ mate.4waycro <- function(SP, ncpus = 0, verbose = TRUE) {
     names(SP$pheno$pop)[length(SP$pheno$pop)] <- paste0("gen", length(SP$pheno$pop))
   
   ### genotype, phenotype, and selection ###
-  SP <- genotype(SP)
-  SP <- phenotype(SP)
-  SP <- selects(SP)
+  SP <- genotype(SP, verbose = FALSE)
+  SP <- phenotype(SP, verbose = FALSE)
+  SP <- selects(SP, verbose = FALSE)
   count.ind <- c(count.ind, nrow(pop.curr))
   logging.log(" After generation", 3, ",", sum(count.ind[1:3]), "individuals are generated...\n", verbose = verbose)
   
@@ -1196,7 +1436,7 @@ mate.4waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' the function returns a list containing
 #' \describe{
 #' \item{$reprod$pop.gen}{the generations of simulated population.}
-#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
 #' \item{$reprod$sex.rate}{the sex ratio of simulated population.}
 #' \item{$reprod$prog}{the progeny number of an individual.}
 #' \item{$geno}{a list of genotype simulation parameters.}
@@ -1206,6 +1446,7 @@ mate.4waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate annotation simulation parameters
 #' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
@@ -1213,7 +1454,7 @@ mate.4waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' # Generate phenotype simulation parameters
 #' SP <- param.pheno(SP = SP, pop.ind = 100)
 #' # Generate selection parameters
-#' SP <- param.sel(SP = SP, sel.single = "comb")
+#' SP <- param.sel(SP = SP, sel.single = "ind")
 #' # Generate reproduction parameters
 #' SP <- param.reprod(SP = SP, reprod.way = "backcro")
 #' 
@@ -1229,6 +1470,7 @@ mate.4waycro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' SP <- selects(SP)
 #' # Run back cross
 #' SP <- mate.backcro(SP)
+#' }
 mate.backcro <- function(SP, ncpus = 0, verbose = TRUE) {
   
   # reproduction parameters
@@ -1240,7 +1482,6 @@ mate.backcro <- function(SP, ncpus = 0, verbose = TRUE) {
   pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
   pop.geno.id <- pop[, 1]
   pop.geno <- SP$geno$pop.geno[[length(SP$geno$pop.geno)]]
-  incols <- SP$geno$incols
   pop.sel <- SP$sel$pop.sel[[length(SP$sel$pop.sel)]]
   if (is.null(pop.sel)) {
     ind.sir <- pop$index[pop$sex == 1]
@@ -1267,7 +1508,7 @@ mate.backcro <- function(SP, ncpus = 0, verbose = TRUE) {
     index.sir <- match(ped.sir, pop.geno.id)
     index.dam <- match(ped.dam, pop.geno.id)
     
-    pop.geno.curr <- mate(pop.geno = pop.geno, incols = incols, index.sir = index.sir, index.dam = index.dam, ncpus = ncpus)
+    pop.geno.curr <- mate(pop.geno = pop.geno, index.sir = index.sir, index.dam = index.dam, ncpus = ncpus)
     
     sex <- rep(2, pop.ind)
     sex[sample(1:pop.ind, pop.ind * sex.rate)] <- 1
@@ -1282,9 +1523,9 @@ mate.backcro <- function(SP, ncpus = 0, verbose = TRUE) {
       names(SP$pheno$pop)[length(SP$pheno$pop)] <- paste0("gen", length(SP$pheno$pop))
     
     ### genotype, phenotype, and selection ###
-    SP <- genotype(SP)
-    SP <- phenotype(SP)
-    SP <- selects(SP)
+    SP <- genotype(SP, verbose = FALSE)
+    SP <- phenotype(SP, verbose = FALSE)
+    SP <- selects(SP, verbose = FALSE)
     count.ind <- c(count.ind, nrow(pop.curr))
     logging.log(" After generation", i + 1, ",", sum(count.ind[1:(i + 1)]), "individuals are generated...\n", verbose = verbose)
     
@@ -1320,7 +1561,7 @@ mate.backcro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' the function returns a list containing
 #' \describe{
 #' \item{$reprod$pop.sel}{the generations of simulated population.}
-#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
+#' \item{$reprod$reprod.way}{reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.}
 #' \item{$reprod$sex.rate}{the sex ratio of simulated population.}
 #' \item{$reprod$prog}{the progeny number of an individual.}
 #' \item{$geno}{a list of genotype simulation parameters.}
@@ -1330,14 +1571,13 @@ mate.backcro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' # Generate annotation simulation parameters
 #' SP <- param.annot(qtn.num = list(tr1 = 10))
 #' # Generate genotype simulation parameters
 #' SP <- param.geno(SP = SP, pop.marker = 1e4, pop.ind = 1e2)
 #' # Generate phenotype simulation parameters
 #' SP <- param.pheno(SP = SP, pop.ind = 100)
-#' # Generate selection parameters
-#' SP <- param.sel(SP = SP, sel.single = "comb")
 #' # Generate reproduction parameters
 #' SP <- param.reprod(SP = SP, reprod.way = "userped")
 #' 
@@ -1347,17 +1587,15 @@ mate.backcro <- function(SP, ncpus = 0, verbose = TRUE) {
 #' SP <- genotype(SP)
 #' # Run phenotype simulation
 #' SP <- phenotype(SP)
-#' # Run selection
-#' SP <- selects(SP)
 #' # Run user-specified pedigree mating
 #' SP <- mate.userped(SP)
+#' }
 mate.userped <- function(SP, ncpus = 0, verbose = TRUE) {
   
   # reproduction parameters
   pop <- SP$pheno$pop[[length(SP$pheno$pop)]]
   pop.geno.id <- pop[, 1]
   pop.geno <- SP$geno$pop.geno[[length(SP$geno$pop.geno)]]
-  incols <- SP$geno$incols
   userped <- SP$reprod$userped
   
   # thanks to YinLL for sharing codes of pedigree sorting
@@ -1457,6 +1695,7 @@ getfam <- function(sir, dam, fam.op, mode = c("pat", "mat", "pm")) {
     uni.sir <- unique(sir)
     for (i in 1:length(uni.sir)) {
       flag <- sir == uni.sir[i]
+      flag[is.na(flag)] <- FALSE
       fam[flag] <- fam.op + i - 1
       infam[flag] <- 1:sum(flag)
     }
@@ -1464,6 +1703,7 @@ getfam <- function(sir, dam, fam.op, mode = c("pat", "mat", "pm")) {
     uni.dam <- unique(dam)
     for (i in 1:length(uni.dam)) {
       flag <- dam == uni.dam[i]
+      flag[is.na(flag)] <- FALSE
       fam[flag] <- fam.op + i - 1
       infam[flag] <- 1:sum(flag)
     }
@@ -1473,6 +1713,7 @@ getfam <- function(sir, dam, fam.op, mode = c("pat", "mat", "pm")) {
       flag1 <- sir == uni.sd[i, 1]
       flag2 <- dam == uni.sd[i, 2]
       flag <- flag1 & flag2
+      flag[is.na(flag)] <- FALSE
       fam[flag] <- fam.op + i - 1
       infam[flag] <- 1:sum(flag)
     }
@@ -1495,7 +1736,7 @@ getfam <- function(sir, dam, fam.op, mode = c("pat", "mat", "pm")) {
 #' @param pop the population information containing environmental factors and other effects.
 #' @param pop.gen the generations of simulated population.
 #' @param ps if ps <= 1, fraction selected in selection of males and females; if ps > 1, ps is number of selected males and females.
-#' @param reprod.way reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.
+#' @param reprod.way reproduction method, it consists of 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro', and 'userped'.
 #' @param sex.rate the sex ratio of simulated population.
 #' @param prog the progeny number of an individual.
 #'
@@ -1580,7 +1821,7 @@ IndPerGen <- function(pop, pop.gen = 2, ps = c(0.8, 0.8), reprod.way = "randmate
     count.ind <- 0
     
   } else {
-    stop("'reprod.way' should be 'clone', 'dh', 'selfpol', 'randmate', 'randexself', '2waycro', '3waycro', '4waycro', 'backcro' or 'userped'!")
+    stop("'reprod.way' should be 'clone', 'dh', 'selfpol', 'randmate', 'randexself', 'assort', 'disassort', '2waycro', '3waycro', '4waycro', 'backcro' or 'userped'!")
   }
   
   return(count.ind)
