@@ -1,7 +1,7 @@
 Package: simer
 Title: Data Simulation for Life Science and Breeding
-Version: 0.9.0.3
-Date: 2023-10-10
+Version: 0.9.0.4
+Date: 2023-11-28
 Authors@R: c( person("Dong", "Yin", role = "aut"),
               person("Xuanning", "Zhang", role = "aut"), 
               person("Lilin", "Yin", role = "aut"), 
@@ -30,7 +30,7 @@ RoxygenNote: 7.2.3
 Encoding: UTF-8
 NeedsCompilation: yes
 Maintainer: Xiaolei Liu <xll198708@gmail.com>
-Packaged: 2023-10-10 00:49:11 UTC; Administrator
+Packaged: 2023-11-28 09:28:51 UTC; Administrator
 Author: Dong Yin [aut],
   Xuanning Zhang [aut],
   Lilin Yin [aut],
@@ -43,4 +43,4 @@ Author: Dong Yin [aut],
   Shuhong Zhao [aut],
   Xiaolei Liu [cre, aut, cph]
 Repository: CRAN
-Date/Publication: 2023-10-12 09:50:03 UTC
+Date/Publication: 2023-11-29 11:20:03 UTC
