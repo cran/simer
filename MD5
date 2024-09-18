@@ -1,10 +1,10 @@
-7af4fd8e7f3db2ee51da1dd4c11fc6e3 *DESCRIPTION
-83e14c7421b33a8b96351bcbf78b56a9 *NAMESPACE
+01c902d9f0d3421be80e1d5023716ce0 *DESCRIPTION
+9a58bc388a79915766204a9775160b75 *NAMESPACE
 cf1ec6f8d1884654f8540ca681324ddd *R/RcppExports.R
-89861ff073a9f0c936a43d9b8ddb753e *R/exports.R
+bbe8bdddb374fff79e250a75fd2b5709 *R/exports.R
 54467694738c51b0a5f89b1109efc8a5 *R/simdata.R
-f58f5682eb144d469628b4bc7e542967 *R/simer.Data.R
-9b1bd0a1cef25932332cc6d99402ae97 *R/simer.Genotype.r
+e223077322d410f434454a94c46fd17b *R/simer.Data.R
+57394765dbf625892c03376f4470e2ac *R/simer.Genotype.r
 06656d0070b309ab2cb2c0085b1b5b52 *R/simer.Logging.R
 b9fa39ba832894dc005cc029d2c20b83 *R/simer.Parameter.r
 765c845d8934eaea6b4030b488a0fa02 *R/simer.Phenotype.r
@@ -13,9 +13,9 @@ b2a75bdabae4d9dbad78a1e64fdda99d *R/simer.Selects.r
 f9a3ecb55474168efd567493ad3a7ac1 *R/simer.Utility.R
 f585e774a518efb39d974aa29027e45c *R/simer.r
 e421c495fefbcafdf6e7f81dad7a12e3 *R/zzz.R
-c648708e9f0250ef5bf0a7582f0cb0d6 *README.md
+801093fe893df88c4423bf4fd02b7663 *README.md
 b16fe85e90eaea037664a41b3a8b298d *data/datalist
-3da1284a37c56ac8635241d395d83fe8 *data/simdata.rda
+97b71194d1c6baba8c6cbd75f86d3c13 *data/simdata.rda
 491e2d53c3bdf12792b9bebc04aaaff3 *inst/extdata/00simer_logo/simer_logo.png
 0f81c9d0da42750f4e97f794b679dc2f *inst/extdata/01bigmemory/demo
 6073c17cb39085cdf83ce9755d23627b *inst/extdata/01bigmemory/demo.geno.bin
@@ -117,5 +117,5 @@ f2c4497d76d6599ba6a03022109858c5 *src/data_converter.cpp
 8b5d6dafa74d1285f1c3617f532a4cf6 *src/emma.cpp
 93b17fc4223631e63b8502678226767e *src/genotype.cpp
 2121ccd756fe15379dcb8751974f0579 *src/impute.cpp
-e67d4a89a8ae215e8cb534c8f4f845d5 *src/pedigree.cpp
+a8d662df9522b49b7736020cb2c96fa7 *src/pedigree.cpp
 62195e44c6cc831fa3cd42f5e8ee6574 *src/simer_omp.h

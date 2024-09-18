@@ -352,7 +352,11 @@ annotation <- function(SP, verbose = TRUE) {
   if (is.null(qtn.index)) {
     for (i in 1:nTrait) {
       if (sum(qtn.num[[i]]) <= 0) { next  }
-      qtn.trn[[i]] <- sort(sample(1:nrow(pop.map), sum(qtn.num[[i]])))
+      if (is.null(pop.map$QTNProb)) {
+        qtn.trn[[i]] <- sort(sample(1:nrow(pop.map), sum(qtn.num[[i]])))
+      } else {
+        qtn.trn[[i]] <- sort(sample(1:nrow(pop.map), sum(qtn.num[[i]]), prob = pop.map$QTNProb))
+      }
       logging.log(" Number of selected markers of trait", i, ":", qtn.num[[i]], "\n", verbose = verbose)
     }
     SP$map$qtn.index <- qtn.trn
@@ -432,16 +436,18 @@ cal.eff <- function(qtn.num = 10, qtn.dist = "norm", qtn.var = 1, qtn.prob = 0.5
   qtn.eff <- NULL
   for (nq in 1:length(qtn.num)) {
     if (qtn.dist[nq] == "norm") {
-      qtn.eff <- c(qtn.eff, rnorm(qtn.num[nq], 0, sqrt(qtn.var[nq])))
+      qtn.eff.new <- rnorm(qtn.num[nq], 0, sqrt(qtn.var[nq]))
+      qtn.eff.new <- sqrt(qtn.var[nq]) / sd(qtn.eff.new) * qtn.eff.new
     } else if (qtn.dist[nq] == "geom") {
-      qtn.eff <- c(qtn.eff, rgeom(qtn.num[nq], qtn.prob[nq]))
+      qtn.eff.new <- rgeom(qtn.num[nq], qtn.prob[nq])
     } else if (qtn.dist[nq] == "gamma") {
-      qtn.eff <- c(qtn.eff, rgamma(qtn.num[nq], qtn.shape[nq], qtn.scale[nq]))
+      qtn.eff.new <- rgamma(qtn.num[nq], qtn.shape[nq], qtn.scale[nq])
     } else if (qtn.dist[nq] == "beta") {
-      qtn.eff <- c(qtn.eff, rbeta(qtn.num[nq], qtn.shape1[nq], qtn.shape2[nq], qtn.ncp[nq]))
+      qtn.eff.new <- rbeta(qtn.num[nq], qtn.shape1[nq], qtn.shape2[nq], qtn.ncp[nq])
     } else {
       stop("Please input a right QTN effect!")
     }
+    qtn.eff <- c(qtn.eff, qtn.eff.new)
   }
   
   return(qtn.eff)
@@ -470,6 +476,10 @@ cal.eff <- function(qtn.num = 10, qtn.dist = "norm", qtn.var = 1, qtn.prob = 0.5
 #' head(GxG.net)
 GxG.network <- function(pop.map = NULL, qtn.pos = 1:10, qtn.model = "A:D") {
   
+  if (!requireNamespace("igraph", quietly = TRUE)) {
+    stop("To make GxG network, it requires 'igraph' package which cannot be found. Please install 'igraph' using 'install.packages('igraph')'.")
+  }
+  
   if (is.null(pop.map)) {
     stop("'pop.map' is necessary!")
   }
@@ -486,10 +496,10 @@ GxG.network <- function(pop.map = NULL, qtn.pos = 1:10, qtn.model = "A:D") {
   SNP <- pop.map[, 1]
   paths <- rep(list(NULL), max.lev)
   nQTNs <- length(qtn.pos)
-  g <- ba.game(n = nQTNs, m = 2, directed = FALSE)
+  g <- igraph::ba.game(n = nQTNs, m = 2, directed = FALSE)
   for (i in 1:(nQTNs-1)) {
     for (j in (i+1):nQTNs) {
-      ps <- all_simple_paths(g, from = i, to = j)
+      ps <- igraph::all_simple_paths(g, from = i, to = j)
       for (k in 1:length(ps)) {
         if (length(ps[[k]]) <= max.lev) {
           ps_str <- paste(SNP[qtn.pos[ps[[k]]]], collapse = "-")

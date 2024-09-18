@@ -7,13 +7,10 @@ NULL
 #' @import jsonlite
 NULL
 
-#' @import igraph
-NULL
-
 #' @importFrom utils write.table read.delim read.table str packageVersion
 NULL
 
-#' @importFrom stats aov cor dnorm qnorm rgamma rnorm rbeta rgeom runif var shapiro.test na.omit lm step formula model.matrix
+#' @importFrom stats aov cor dnorm qnorm rgamma rnorm rbeta rgeom runif sd var shapiro.test na.omit lm step formula model.matrix
 NULL
 
 #' @importFrom Matrix bdiag

@@ -528,12 +528,13 @@ simer.Data.Ped <- function(filePed, fileMVP = NULL, out = NULL, standardID = FAL
     candDam <- NULL
   }
 
-  # thanks for YinLL for sharing code
+  # thanks for YinLL sharing code
   # get 3-column pedigree
   if (!is.matrix(pedigree))	pedigree <- as.matrix(pedigree)
   pedigree <- apply(pedigree, 2, as.character)
   pedigree[pedigree == ""] <- "0"
   pedigree[is.na(pedigree)] <- "0"
+  pedName <- colnames(pedigree)[1:3]
   if (ncol(pedigree) != 3) {
     if (ncol(pedigree) != 15)
       stop("Please check your data! pegigree information in 15 columns which contain 3 generations' information are needed!")
@@ -565,40 +566,39 @@ simer.Data.Ped <- function(filePed, fileMVP = NULL, out = NULL, standardID = FAL
     # Ind Sir Dam  SS  SD  DS  DD SSS SSD SDS SDD DSS DSD DDS DDD
     #   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15
     pedx <- rbind(
-      pedigree[, c(1, 2, 3)],
-      pedigree[, c(2, 4, 5)],
-      pedigree[, c(3, 6, 7)],
-      pedigree[, c(4, 8, 9)],
-      pedigree[, c(5, 10, 11)],
-      pedigree[, c(6, 12, 13)],
-      pedigree[, c(7, 14, 15)],
-      cbind(pedigree[, 8], 0, 0),
-      cbind(pedigree[, 9], 0, 0),
-      cbind(pedigree[, 10], 0, 0),
-      cbind(pedigree[, 11], 0, 0),
-      cbind(pedigree[, 12], 0, 0),
-      cbind(pedigree[, 13], 0, 0),
-      cbind(pedigree[, 14], 0, 0),
-      cbind(pedigree[, 15], 0, 0)
+      unique(rbind(
+        cbind(pedigree[,  8], 0, 0),
+        cbind(pedigree[,  9], 0, 0),
+        cbind(pedigree[, 10], 0, 0),
+        cbind(pedigree[, 11], 0, 0),
+        cbind(pedigree[, 12], 0, 0),
+        cbind(pedigree[, 13], 0, 0),
+        cbind(pedigree[, 14], 0, 0),
+        cbind(pedigree[, 15], 0, 0),
+        pedigree[, c(4,  8,  9)],
+        pedigree[, c(5, 10, 11)],
+        pedigree[, c(6, 12, 13)],
+        pedigree[, c(7, 14, 15)],
+        pedigree[, c(2,  4,  5)],
+        pedigree[, c(3,  6,  7)]
+      )),
+      pedigree[, c(1,  2,  3)]
     )
   } else {
     pedx <- pedigree
-    pedx0 <- setdiff(pedx[,c(2:3)], pedx[, 1])
+    pedx0 <- setdiff(pedx[, c(2:3)], pedx[, 1])
     pedx0 <- pedx0[pedx0 != "0"]
     if (length(pedx0) > 0) {
       pedx0 <- cbind(pedx0, "0", "0")
-      colnames(pedx0) <- colnames(pedx)
       pedx <- rbind(pedx0, pedx)
     }
   }
-  pedName <- colnames(pedx)
+  colnames(pedx) <- pedName
   pedx <- pedx[pedx[, 1] != "0", ]
-  pedError <- pedx[duplicated(pedx[, 1]), ]
-  pedx <- pedx[!duplicated(pedx[, 1]), ]
-
+  
   # keep original sires and dams
-  pedx <- cbind(pedx, pedx[, 2:3])
-  colnames(pedx) <- c("index", "sirOrigin", "damOrigin", "sirFound", "damFound")
+  pedx <- cbind(pedx, pedx[, 2:3], "Match", "Match")
+  colnames(pedx) <- c("index", "sirOrigin", "damOrigin", "sirFound", "damFound", "sirState", "damState")
   
   if (length(fileMVP) == 0) { fileMVP <- NULL }
   if (!is.null(fileMVP)) {
@@ -617,14 +617,14 @@ simer.Data.Ped <- function(filePed, fileMVP = NULL, out = NULL, standardID = FAL
     birthDate <- NULL
   }
   
+  pedx[pedx[, 1] == pedx[, 2], 4] <- "0"
+  pedx[pedx[, 1] == pedx[, 3], 5] <- "0"
+  pedx[pedx[, 1] == pedx[, 2], 6] <- "KidIsSire"
+  pedx[pedx[, 1] == pedx[, 3], 7] <- "KidIsDam"
+
   if (hasGeno) {
     pedx <- PedigreeCorrector(geno@address, genoID, pedx, candSir, candDam, exclThres, assignThres, birthDate, ncpus, verbose)
-    pedError <- rbind(pedError, pedx[pedx$sirState=="NotFound" | pedx$damState=="NotFound", c(1, 4:5)])
-  } else {
-    pedError <- rbind(pedError, pedx[pedx[, 1] == pedx[, 4] | pedx[, 1] == pedx[, 5], ])
-    pedx[pedx[, 1] == pedx[, 4], 4] <- "0"
-    pedx[pedx[, 1] == pedx[, 5], 5] <- "0"
-  }
+  } 
 
   # print("Making needed files")
   pedx1 <- pedx[pedx[, 4] == "0" & pedx[, 5] == "0", ]
@@ -636,36 +636,12 @@ simer.Data.Ped <- function(filePed, fileMVP = NULL, out = NULL, standardID = FAL
     if (sum(index) == 0) {
       index.sir <- pedx2[, 4] %in% Cpedx
       index.dam <- pedx2[, 5] %in% Cpedx
-      if (sum(index.sir) != 0 | sum(index.dam) != 0) {
-        # only one parent can be found
-        pedError <- rbind(pedError, pedx2[index.sir | index.dam, c(1, 4:5)])
-        pedx2[index.sir, 5] <- "0"
-        pedx2[index.dam, 4] <- "0"
-        if (hasGeno) {
-          pedx2$damState[index.sir] <- "NotFound"
-          pedx2$sirState[index.dam] <- "NotFound"
-        }
-        pedx1 <- rbind(pedx1, pedx2[index.sir | index.dam, ])
-        pedx2 <- pedx2[!(index.sir | index.dam), ]
-      } else {
-        # no parent can be found
-        pedx02 <- setdiff(pedx2[, c(4:5)], pedx2[, 1])
-        pedx02 <- pedx02[pedx02 != "0"]
-        if(length(pedx02) > 0){
-          pedx02 <- cbind(pedx02, "0", "0", "0", "0")
-          colnames(pedx02) <- colnames(pedx2)
-          pedx1 <- rbind(pedx1, pedx02)
-        } else {
-          pedError <- rbind(pedError, pedx2[, c(1, 4:5)])
-          pedx2[, 4:5] <- "0"
-          if (hasGeno) {
-            pedx2$sirState <- "NotFound"
-            pedx2$damState <- "NotFound"
-          }
-          pedx1 <- rbind(pedx1, pedx2)
-          pedx2 <- pedx2[-(1:nrow(pedx2)), ]
-        }
-      }
+      pedx2[index.dam, 4] <- "0"
+      pedx2[index.sir, 5] <- "0"
+      pedx2[index.dam, 6] <- "KidOlderThanSire"
+      pedx2[index.sir, 7] <- "KidOlderThanDam"
+      pedx1 <- rbind(pedx1, pedx2[index.sir | index.dam, ])
+      pedx2 <- pedx2[!(index.sir | index.dam), ]
     } else {
       pedx1 <- rbind(pedx1, pedx2[index, ])
       pedx2 <- pedx2[!index, ]
@@ -674,15 +650,15 @@ simer.Data.Ped <- function(filePed, fileMVP = NULL, out = NULL, standardID = FAL
     if (nrow(pedx2) == 0) { go <- FALSE }
   }
   ped <- pedx1
-  pedout <- ped[, c(1, 4:5)]
+  ped[duplicated(ped[, 1]), 6:7] <- "DuplicatedID"
+  pedout <- ped[!duplicated(ped[, 1]), c(1, 4, 5)]
   colnames(pedout) <- pedName
   rm(pedx1); rm(pedx2); gc()
   
   if (is.null(out)) {
-    out <- unlist(strsplit(filePed, split = '.', fixed = TRUE))[1]
+    out <- paste0(unlist(strsplit(filePed, split = '.', fixed = TRUE))[1], ".qc")
   }
   write.table(ped, paste0(out, ".ped.report"), quote = FALSE, row.names = FALSE, col.names = TRUE, sep='\t')
-  write.table(pedError, paste0(out, ".ped.error"), quote = FALSE, row.names = FALSE, col.names = TRUE, sep='\t')
   write.table(pedout, paste0(out, ".ped"), quote = FALSE, row.names = FALSE, col.names = TRUE, sep='\t')
   
   t2 <- as.numeric(Sys.time())
@@ -758,6 +734,9 @@ simer.Data.Pheno <- function(filePhe = NULL, filePed = NULL, out = NULL, planPhe
       }
       hasRep <- FALSE
       pheList <- pheno[, pheCols]
+      if (is.null(out)) {
+        out <- paste0(unlist(strsplit(filePhe, split = '.', fixed = TRUE))[1], ".qc")
+      }
       
     } else {
       # logging.log(" JOB NAME:", planPhe$job_name, "\n", verbose = verbose)
@@ -868,6 +847,10 @@ simer.Data.Pheno <- function(filePhe = NULL, filePed = NULL, out = NULL, planPhe
       if (!hasRep) {
         pheList <- pheList[!duplicated(pheList[, 1]), ]
       }
+
+      if (is.null(out)) {
+        out <- planPhe$job_name
+      }
       
     }
     
@@ -892,9 +875,6 @@ simer.Data.Pheno <- function(filePhe = NULL, filePed = NULL, out = NULL, planPhe
       colnames(finalPhe)[traits] <- paste0('t', traits - 1)
     }
     
-    if (is.null(out)) {
-      out <- unlist(strsplit(filePhe, split = '.', fixed = TRUE))[1]
-    }
     if (hasRep) {
       pheFileName <- paste0(out, ".repeat.phe")
     } else {
@@ -977,7 +957,7 @@ simer.Data.Env <- function(jsonList = NULL, hiblupPath = '', header = TRUE, sep 
     } else {
       planPheN <- planPhe[i]
     }
-    for (j in 1:nTrait) {
+    for (j in 1:length(planPheN)) {
       traits <- unlist(planPheN[[j]]$job_traits[[1]]$traits)
       covariates <- unlist(planPheN[[j]]$job_traits[[1]]$covariates)
       fixedEffects <- unlist(planPheN[[j]]$job_traits[[1]]$fixed_effects)
@@ -1020,14 +1000,17 @@ simer.Data.Env <- function(jsonList = NULL, hiblupPath = '', header = TRUE, sep 
         }
         
         jsonListN$breeding_plan <- list(planPheN[[j]])
-        # select random effect which ratio less than threshold
+        # select random effect which ratio more than threshold
         gebv <- simer.Data.cHIBLUP(jsonList = jsonListN, hiblupPath = hiblupPath, ncpus = ncpus, verbose = verbose)
-        vc <- gebv[[1]]$varList[[1]]
+        out <- planPheN[[j]]$job_name
+        varFile <- paste0(out, ".vars")
+        vars <- read.table(varFile, header = TRUE)
+        vc <- vars$h2
         randIdx <- 1:length(randomEffects)
         if (unlist(planPhe[[i]]$repeated_records)) {
           randIdx <- randIdx + 1
         }
-        randomEffectRatio <- vc[randIdx] / sum(vc)
+        randomEffectRatio <- vc[randIdx]
         randomEffects <- randomEffects[randomEffectRatio > randomRatio]
         if (length(covariates) == 1) { covariates <- I(covariates)  }
         if (length(fixedEffects) == 1) { fixedEffects <- I(fixedEffects)  }
@@ -1035,26 +1018,29 @@ simer.Data.Env <- function(jsonList = NULL, hiblupPath = '', header = TRUE, sep 
         planPhe[[i]]$job_traits[[j]]$covariates <- covariates
         planPhe[[i]]$job_traits[[j]]$fixed_effects <- fixedEffects
         planPhe[[i]]$job_traits[[j]]$random_effects <- randomEffects
+        file.remove(paste0(out, c(".log", ".vars", ".anova", ".beta", ".rand")))
+
+        envFormula <- c(
+          paste0(planPhe[[i]]$job_traits[[j]]$fixed_effects, "(F)"), 
+          paste0(planPhe[[i]]$job_traits[[j]]$covariates, "(C)"), 
+          paste0(planPhe[[i]]$job_traits[[j]]$random_effects, "(R)"))
+        envFormula <- envFormula[nchar(envFormula) > 3]
+        logging.log(" *********************************************************\n",
+                    "Model optimized by BIC and random variance ratio is:\n", 
+                      paste(c(paste0(traits, "~1"), envFormula), collapse = '+'), "\n",
+                    "*********************************************************\n", verbose = verbose)
       }
-      
-      planPhe[[i]]$vc_vars <- paste0(planPhe[[i]]$job_name, ".vars")
-      if (unlist(planPhe[[i]]$multi_trait)) {
-        planPhe[[i]]$vc_covars <- paste0(planPhe[[i]]$job_name, ".covars")
-      }
-      
-      envFormula <- c(
-        paste0(planPhe[[i]]$job_traits[[j]]$fixed_effects, "(F)"), 
-        paste0(planPhe[[i]]$job_traits[[j]]$covariates, "(C)"), 
-        paste0(planPhe[[i]]$job_traits[[j]]$random_effects, "(R)"))
-      envFormula <- envFormula[nchar(envFormula) > 3]
-      logging.log(" *********************************************************\n",
-                  "Model optimized by BIC and random variance ratio is:\n", 
-                    paste(c(paste0(traits, "~1"), envFormula), collapse = '+'), "\n",
-                  "*********************************************************\n", verbose = verbose)
+    }
+
+    planPhe[[i]]$vc_vars <- paste0(planPhe[[i]]$job_name, ".vars")
+    if (unlist(planPhe[[i]]$multi_trait)) {
+      planPhe[[i]]$vc_covars <- paste0(planPhe[[i]]$job_name, ".covars")
     }
   }
   
   jsonList$breeding_plan <- planPhe
+  gebv <- simer.Data.cHIBLUP(jsonList = jsonList, hiblupPath = hiblupPath, ncpus = ncpus, verbose = verbose)
+
   t2 <- as.numeric(Sys.time())
   logging.log(" Model optimization is Done within", format_time(t2 - t1), "\n", verbose = verbose)
   return(jsonList)
@@ -1154,7 +1140,11 @@ simer.Data.cHIBLUP <- function(jsonList = NULL, hiblupPath = '', mode = "A", vc.
         x$random_effects <- x$random_effects[x$random_effects %in% names(finalPhe)]
         env <- paste0(match(x$random_effects, names(pheno)), collapse=',')
         if (unlist(planPhe[[i]]$repeated_records)) {
-          env <- paste0(c(1, env), collapse = ',')
+          if (env == "") {
+            env <- "1"
+          } else {
+            env <- paste0(c(1, env), collapse = ',')
+          }
         }
         if (env == "") return(0)
         return(env)
@@ -1304,7 +1294,6 @@ simer.Data.SELIND <- function(jsonList = NULL, hiblupPath = '', ncpus = 10, verb
   BVWeight <- as.numeric(str1[strIsNA - 1])
   names(BVWeight) <- str1[strIsNA]
   
-  covPList <- NULL
   covAList <- NULL
   pheNames <- NULL
   usePhes <- NULL
@@ -1335,14 +1324,13 @@ simer.Data.SELIND <- function(jsonList = NULL, hiblupPath = '', ncpus = 10, verb
     if (is.null(usePhes)) {
       usePhes <- usePhe
     } else {
-      usePhes <- merge(x = usePhes, y = usePhe, by = 1, all = TRUE)
+      usePhes <- merge(x = usePhes, y = usePhe, by = names(pheno)[1], all = TRUE)
     }
     usePhe <- usePhe[, -1, drop = FALSE]
-    covP <- var(usePhe, na.rm = TRUE)
-    covPList[[i]] <- covP
   }
   
   usePhes <- usePhes[, -1]
+  P <- as.matrix(var(usePhes, na.rm = TRUE))
   usePhes[is.na(usePhes)] <- 0
   
   if (auto_optim) {
@@ -1356,7 +1344,6 @@ simer.Data.SELIND <- function(jsonList = NULL, hiblupPath = '', ncpus = 10, verb
       }
     }
     
-    P <- as.matrix(Matrix::bdiag(covPList))
     A <- as.matrix(Matrix::bdiag(covAList))
     iP <- try(solve(P), silent = TRUE)
     if (inherits(iP, "try-error")) {
@@ -1511,7 +1498,7 @@ simer.Data.Json <- function(jsonFile, hiblupPath = '', out = "simer.qc", dataQC 
 
   ## step 1. data quality control
   if (dataQC) {
-    jsonList <- simer.Data(jsonList = jsonList, out = out, ncpus = ncpus, verbose = verbose)
+    jsonList <- simer.Data(jsonList = jsonList, out = NULL, ncpus = ncpus, verbose = verbose)
   }
   newJson <- jsonlite::toJSON(jsonList, pretty = TRUE, auto_unbox = TRUE)
   if (verbose) {
