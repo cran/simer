@@ -9,7 +9,7 @@ simer.Data.MVP2Bfile(
   map,
   pheno = NULL,
   out = "simer",
-  threads = 10,
+  threads = 1,
   verbose = TRUE
 )
 }
@@ -36,10 +36,12 @@ transforming MVP data to binary format.
 }
 \details{
 Build date: Sep 12, 2018
-Last update: July 20, 2022
+Last update: Jan 29, 2025
 }
 \examples{
 \donttest{
+library(bigmemory)
+
 # Generate bigmat and map
 bigmat <- as.big.matrix(matrix(1:6, 3, 2))
 map <- generate.map(pop.marker = 3)

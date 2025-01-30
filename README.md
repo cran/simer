@@ -1,5 +1,5 @@
 # SIMER 
-[![GitHub issues](https://img.shields.io/github/issues/xiaolei-lab/SIMER?color=green)](https://github.com/xiaolei-lab/SIMER/issues/new) [![CRAN Version](https://www.r-pkg.org/badges/version/simer?color=yellow)](https://CRAN.R-project.org/package=simer) [![](https://img.shields.io/badge/GitHub-0.9.0.5-blueviolet.svg)](https://github.com/xiaolei-lab/SIMER) ![](http://cranlogs.r-pkg.org/badges/grand-total/simer?color=red) [![](https://cranlogs.r-pkg.org/badges/last-month/simer)](https://CRAN.R-project.org/package=simer) <a href="https://hits.seeyoufarm.com"/><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fxiaolei-lab%2FSIMER"/>
+[![GitHub issues](https://img.shields.io/github/issues/xiaolei-lab/SIMER?color=green)](https://github.com/xiaolei-lab/SIMER/issues/new) [![CRAN Version](https://www.r-pkg.org/badges/version/simer?color=yellow)](https://CRAN.R-project.org/package=simer) [![](https://img.shields.io/badge/GitHub-0.9.0.6-blueviolet.svg)](https://github.com/xiaolei-lab/SIMER) ![](http://cranlogs.r-pkg.org/badges/grand-total/simer?color=red) [![](https://cranlogs.r-pkg.org/badges/last-month/simer)](https://CRAN.R-project.org/package=simer) <a href="https://hits.seeyoufarm.com"/><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fxiaolei-lab%2FSIMER"/>
 
 ## Data Simulation for Life Science and Breeding
 
@@ -330,14 +330,14 @@ SP <- phenotype(SP)
 <tr>
 <td><b>pop.geno</b></td>
 <td>NULL</td>
-<td>big.matrix or matrix</td>
+<td>big.matrix or matrix (either m * n or n * m is acceptable, m is the number of SNPs, n is the number of individuals)</td>
 <td>the genotype data.</td>
 </tr>
 <tr>
-<td><b>incols</b></td>
+<td><b>inrows</b></td>
 <td>1</td>
 <td>1 or 2</td>
-<td>'1': one-column genotype represents an individual; '2': two-column genotype represents an individual.</td>
+<td>'1': one-row genotype represents an individual; '2': two-row genotype represents an individual.</td>
 </tr>
 <tr>
 <td><b>pop.marker</b></td>
@@ -520,13 +520,13 @@ SP <- genotype(SP)
 ## Generate a genotype matrix with complete linkage disequilibrium
 **[back to top](#contents)** 
 
-Users can generate a genotype matrix with ***complete linkage disequilibrium*** by ```incols = 2``` and ```cld = TRUE```.
+Users can generate a genotype matrix with ***complete linkage disequilibrium*** by ```inrows = 2``` and ```cld = TRUE```.
 
 ```r
 # Generate annotation simulation parameters
 SP <- param.annot(pop.marker = 1e4)
 # Generate genotype simulation parameters
-SP <- param.geno(SP = SP, pop.ind = 1e2, incols = 2, cld = TRUE)
+SP <- param.geno(SP = SP, pop.ind = 1e2, inrows = 2, cld = TRUE)
 
 # Run annotation simulation
 SP <- annotation(SP)
@@ -2887,6 +2887,18 @@ Users can use global parameters to control the ***population properties*** , ***
 <td>whether to use all genotype data to simulate phenotype.</td>
 </tr>
 <tr>
+<td><b>missing.geno</b></td>
+<td>NULL</td>
+<td>num</td>
+<td>the ratio of missing values in genotype data.</td>
+</tr>
+<tr>
+<td><b>missing.phe</b></td>
+<td>NULL</td>
+<td>list</td>
+<td>the ratio of missing values in phenotype data.</td>
+</tr>
+<tr>
 <td><b>ncpus</b></td>
 <td>0</td>
 <td>num</td>
@@ -2971,6 +2983,34 @@ SP <- param.simer(
   out = "simer",
   outpath = getwd(),
   out.format = "plink"
+)
+
+# Run Simer
+SP <- simer(SP)
+
+### 03 Numeric Format with missing values in genotype and phenotype ###
+# Generate all simulation parameters
+SP <- param.simer(
+  # SP = SP, # uncomment it when users already have a 'SP'
+  out = "simer",
+  outpath = getwd(),
+  out.format = "numeric",
+  missing.geno = 0.01,
+  missing.phe = list(tr1 = 0.5)
+)
+
+# Run Simer
+SP <- simer(SP)
+
+### 04 PLINK Binary Format with missing values in genotype and phenotype ###
+# Generate all simulation parameters
+SP <- param.simer(
+  # SP = SP, # uncomment it when users already have a 'SP'
+  out = "simer",
+  outpath = getwd(),
+  out.format = "plink",
+  missing.geno = 0.01,
+  missing.phe = list(tr1 = 0.5)
 )
 
 # Run Simer

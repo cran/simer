@@ -411,7 +411,7 @@ paste_label <- function(line, label, side = "right", margin = 2) {
 #' Format the time.
 #' 
 #' Build date: Oct 22, 2018
-#' Last update: Apr 30, 2022
+#' Last update: Dec 28, 2024
 #' 
 #' @author Dong Yin, Lilin Yin, Haohao Zhang, and Xiaolei Liu
 #' 
@@ -427,8 +427,10 @@ paste_label <- function(line, label, side = "right", margin = 2) {
 #' format_time(x = 7200)
 format_time <- function(x) {
   h <- x %/% 3600
-  m <- (x %% 3600) %/% 60
-  s <- ((x %% 3600) %% 60)
+  x <- x %% 3600
+  m <- x %/% 60
+  x <- x %% 60
+  s <- x
   index <- which(c(h, m, s) != 0)
   num <- c(h, m, s)[index]
   num <- round(num, 0)
@@ -558,7 +560,7 @@ remove_bigmatrix <- function(x, desc_suffix = ".geno.desc", bin_suffix = ".geno.
 #' Write files of Simer.
 #'
 #' Build date: Jan 7, 2019
-#' Last update: Apr 30, 2022
+#' Last update: Jan 28, 2025
 #'
 #' @author Dong Yin
 #'
@@ -586,18 +588,20 @@ write.file <- function(SP) {
   out.format <- SP$global$out.format
   out.geno.gen <- SP$global$out.geno.gen
   out.pheno.gen <- SP$global$out.pheno.gen
-  verbose <- SP$global$verbose
-  incols <- SP$geno$incols
+  missing.geno <- SP$global$missing.geno
+  missing.phe <- SP$global$missing.phe
+  inrows <- SP$geno$inrows
   ncpus <- SP$global$ncpus
+  verbose <- SP$global$verbose
   
   if (is.null(outpath)) return(SP)
   
-  pop.marker <- nrow(SP$geno$pop.geno[[1]])
   pop.inds <- sapply(out.geno.gen, function(i) {
-    return(ncol(SP$geno$pop.geno[[i]]) / incols)
+    return(nrow(SP$geno$pop.geno[[i]]) / inrows)
   })
   pop.ind <- sum(pop.inds)
-  
+  pop.marker <- ncol(SP$geno$pop.geno[[1]])
+
   if (max(out.geno.gen) > SP$reprod$pop.gen) {
     stop("'out.geno.gen' should be not more than 'pop.gen'!")
   }
@@ -624,8 +628,8 @@ write.file <- function(SP) {
   geno.back <- paste0(out, ".geno.bin")
   geno.desc <- paste0(out, ".geno.desc")
   geno.total <- filebacked.big.matrix(
-    nrow = pop.marker,
-    ncol = pop.ind,
+    nrow = pop.ind,
+    ncol = pop.marker,
     init = 3,
     type = 'char',
     backingpath = directory.rep,
@@ -636,18 +640,41 @@ write.file <- function(SP) {
   pop.inds <- Reduce("+", pop.inds, accumulate = TRUE)
   pop.inds <- c(0, pop.inds[-length(pop.inds)]) + 1
   for (i in seq_along(out.geno.gen)) {
-    if (incols == 1) {
+    if (inrows == 1) {
       BigMat2BigMat(geno.total@address, SP$geno$pop.geno[[out.geno.gen[i]]]@address, op = pop.inds[i], threads = ncpus)
     } else {
-      Mat2BigMat(geno.total@address, geno.cvt1(SP$geno$pop.geno[[out.geno.gen[i]]][]), op = pop.inds[i], threads = ncpus)
+      BigMat2BigMat(geno.total@address, geno.cvt1(SP$geno$pop.geno[[out.geno.gen[i]]])@address, op = pop.inds[i], threads = ncpus)
     }
   }
-  
+  if (!is.null(missing.geno)) {
+    if (missing.geno <= 0 | missing.geno >= 1) {
+      stop("'missing.geno' should be more than 0 and less than 1!")
+    }
+    NA.row <- sample(x = 1:pop.ind, size = pop.ind * sqrt(missing.geno))
+    NA.col <- sample(x = 1:pop.marker, size = pop.marker * sqrt(missing.geno))
+    geno.total[NA.row, NA.col] <- NA
+  }
+
   pheno.geno <- NULL
   pheno.total <- do.call(rbind, lapply(out.pheno.gen, function(i) {
     return(SP$pheno$pop[[i]])
   }))
-  
+  if (!is.null(missing.phe)) {
+    phe.name <- sapply(1:length(SP$pheno$phe.model), function(i) {
+      return(unlist(strsplit(SP$pheno$phe.model[[i]], split = "\\s*\\=\\s*"))[1])
+    })
+    if (length(phe.name) != length(missing.phe)) {
+      stop("Please make sure number of traits of 'phe.model' and 'missing.phe' are same!")
+    }
+    for (i in 1:length(phe.name)) {
+      if (missing.phe[[i]] <= 0 | missing.phe[[i]] >= 1) {
+        stop("'missing.phe' should be more than 0 and less than 1!")
+      }
+      NA.row <- sample(x = 1:pop.ind, size = pop.ind * missing.phe[[i]])
+      pheno.total[NA.row, phe.name[i]] <- NA
+    }
+  }
+
   if (out.format == "numeric") {
     write.table(pheno.total[, 1], file = file.path(directory.rep, paste0(out, ".geno.ind")), sep = "\t", quote = FALSE, row.names = FALSE, col.names = FALSE)
     write.table(SP$map$pop.map, file = file.path(directory.rep, paste0(out, ".geno.map")), row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
